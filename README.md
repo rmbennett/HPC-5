@@ -176,4 +176,14 @@ USAGE*****
 
 cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png   
 
-ti
+time cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png
+
+Initial Figures on Graphic01:
+
+Processing 512 x 512 image with 2 bits per pixel.
+
+real	0m0.111s
+user	0m0.104s
+sys	0m0.012s
+
+

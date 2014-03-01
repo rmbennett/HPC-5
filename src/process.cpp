@@ -6,6 +6,10 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <sys/time.h>
+#include <time.h>
+#include <stddef.h>
+#include <sys/sysinfo.h>
 
 /*
 This is a program for performing morphological operations in gray-scale
@@ -397,9 +401,17 @@ void invert(int levels, unsigned w, unsigned h, unsigned bits, std::vector<uint3
 		pixels[i]=mask-pixels[i];
 	}
 }
-
+long stamp()
+{
+  struct timespec tv;
+  long _stamp;
+  clock_gettime(CLOCK_MONOTONIC, &tv);
+  _stamp = tv.tv_sec * 1000 * 1000 * 1000 + tv.tv_nsec;
+  return _stamp;
+}
 int main(int argc, char *argv[])
 {
+	long s1, s2;
 	try{
 		if(argc<3){
 			fprintf(stderr, "Usage: process width height [bits] [levels]\n");
@@ -441,7 +453,7 @@ int main(int argc, char *argv[])
 		std::vector<uint64_t> raw(cbRaw/8);
 		
 		std::vector<uint32_t> pixels(w*h);
-		
+		s1 = stamp();
 		while(1){
 			if(!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
 				break;	// No more images
@@ -453,7 +465,8 @@ int main(int argc, char *argv[])
 			pack_blob(w, h, bits, &pixels[0], &raw[0]);
 			write_blob(STDOUT_FILENO, cbRaw, &raw[0]);
 		}
-		
+		s2 = stamp();
+    	fprintf(stderr,"%g s\n", (s2 - s1) / 1e9);
 		return 0;
 	}catch(std::exception &e){
 		std::cerr<<"Caught exception : "<<e.what()<<"\n";
