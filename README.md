@@ -173,17 +173,34 @@ you are competing with the others.
 
 USAGE*****
 
+How to build ***
 
-cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png   
+g++ -I include/ src/process.cpp -std=c++11 -lOpenCL
 
-time cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png
-
-Initial Figures on Graphic01:
-
+How to run ***
+cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png
 Processing 512 x 512 image with 2 bits per pixel.
+0.0644059 s
 
-real	0m0.111s
-user	0m0.104s
-sys	0m0.012s
+
+This part is pretty important 
+
+
+The metric used to evaluate this work is maximum pixel
+latency. Pixel latency is defined as the time between
+a given pixel entering the program, and the transformed
+pixel at the same co-ordinates leaving the program. The
+goal is to minimise the maximimum latency over all
+pixels. Latency measuring does not start until the first
+pixel enters the pipeline, so performance measurement
+is "on-hold" till that point. However, your program
+must eventually read the first pixel...
+
+
+So essentially any preprocessing can be done before pixels arrive. 
+
+
+
+
 
 
