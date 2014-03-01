@@ -169,3 +169,11 @@ I would suggest you keep your code private, not least because
 you are competing with the others.
 
 */
+
+
+USAGE*****
+
+
+cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png   
+
+ti
