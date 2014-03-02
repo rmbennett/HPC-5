@@ -200,6 +200,17 @@ must eventually read the first pixel...
 So essentially any preprocessing can be done before pixels arrive. 
 
 
+cat input1024.raw | ./a.out 1024 1024 2 | convert -size 1024x1024 -depth 2 gray:- output.png
+Processing 1024 x 1024 image with 2 bits per pixel.
+Overall time 0.329756 s
+Read Blob 416990 s
+unpack_blob 0.0132685 s
+process 0.291943 s
+pack_blob 0.00809472 s
+write_blob 0.0161225 s
+
+
+So we should work on process() - which contains predominantly lots of erodes and dilates. 
 
 
 
