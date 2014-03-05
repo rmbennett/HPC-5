@@ -1,5 +1,5 @@
 CPP = g++
-SRC = src/process.cpp src/cl_process.cpp  src/file_utils.cpp  src/image_process.cpp
+SRC = src/process.cpp src/file_utils.cpp src/image_process.cpp
 
 CFLAGS =-I include -O3 -std=c++11 -g
 LIBS = -lrt -lm -lOpenCL

@@ -1,7 +1,25 @@
-HPC-5
-=====
+#include <unistd.h>
+#include <algorithm>
+#include <cassert>
+#include <stdexcept>
+#include <vector>
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <sys/time.h>
+#include <time.h>
+#include <stddef.h>
+#include <sys/sysinfo.h>
 
-High Performance Computing Coursework 5
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
+#include <CL/cl.h>
+#endif
+
+#include "file_utils.hpp"
+#include "image_process.hpp"
+#include "cl_process.hpp"
 
 /*
 This is a program for performing morphological operations in gray-scale
@@ -170,104 +188,103 @@ you are competing with the others.
 
 */
 
+// You may want to play with this to check you understand what is going on
+void invert(int levels, unsigned w, unsigned h, unsigned bits, std::vector<uint32_t> &pixels)
+{
+	uint32_t mask=0xFFFFFFFFul>>bits;
+	
+	for(unsigned i=0;i<w*h;i++)
+	{
+		pixels[i]=mask-pixels[i];
+	}
+}
 
-USAGE*****
+//Timing function - from Advanced Computer Architecture - Coursework 2 - Prof. Kelly 
+long stamp()
+{
+  struct timespec tv;
+  long _stamp;
+  clock_gettime(CLOCK_MONOTONIC, &tv);
+  _stamp = tv.tv_sec * 1000 * 1000 * 1000 + tv.tv_nsec;
+  return _stamp;
+}
 
-How to build ***
+int main(int argc, char *argv[])
+{
+	long s1, s2, s3, s4, s5, s6, s7;
+	try
+	{
+		if(argc<3)
+		{
+			fprintf(stderr, "Usage: process width height [bits] [levels]\n");
+			fprintf(stderr, "   bits=8 by default\n");
+			fprintf(stderr, "   levels=1 by default\n");
+			exit(1);
+		}
+		
+		unsigned w=atoi(argv[1]);
+		unsigned h=atoi(argv[2]);
+		
+		unsigned bits=8;
+		if(argc>3)
+		{
+			bits=atoi(argv[3]);
+		}
+		
+		if(bits>32)
+			throw std::invalid_argument("Bits must be <= 32.");
+		
+		unsigned tmp=bits;
+		while(tmp!=1)
+		{
+			tmp>>=1;
+			if(tmp==0)
+				throw std::invalid_argument("Bits must be a binary power.");
+		}
+		
+		if( ((w*bits)%64) != 0){
+			throw std::invalid_argument(" width*bits must be divisible by 64.");
+		}
+		
+		int levels=1;
+		if(argc>4){
+			levels=atoi(argv[4]);
+		}
+		
+		fprintf(stderr, "Processing %d x %d image with %d bits per pixel.\n", w, h, bits);
+		
+		uint64_t cbRaw=uint64_t(w)*h*bits/8;
+		std::vector<uint64_t> raw(cbRaw/8);
+		
+		std::vector<uint32_t> pixels(w*h);
+		s1 = stamp();
+		while(1)
+		{
+			//s3 = stamp();
+			if(!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
+				break;	// No more images
+			//s4 = stamp();
+			unpack_blob(w, h, bits, &raw[0], &pixels[0]);		
+			//s5 = stamp();
+			process(levels, w, h, bits, pixels);
+			//invert(levels, w, h, bits, pixels);
+			//s6 = stamp();
+			pack_blob(w, h, bits, &pixels[0], &raw[0]);
+			//s7 = stamp();
+			write_blob(STDOUT_FILENO, cbRaw, &raw[0]);			
+		}
+		s2 = stamp();
+     	fprintf(stderr,"Overall time %g s\n", (s2 - s1) / 1e9);
+		// fprintf(stderr,"Read Blob %g s\n", (s4 - s3) / 1e9);
+		// fprintf(stderr,"unpack_blob %g s\n", (s5 - s4) / 1e9);
+		// fprintf(stderr, "process %g s\n", (s6 - s5) / 1e9);
+		// fprintf(stderr,"pack_blob %g s\n", (s7 - s6) / 1e9);
+		// fprintf(stderr,"write_blob %g s\n", (s2 - s7) / 1e9);
+		return 0;
+	}catch(std::exception &e)
+	{
+		std::cerr<<"Caught exception : "<<e.what()<<"\n";
+		return 1;
+	}
+}
 
-g++ -I include/ src/process.cpp -std=c++11 -lOpenCL
-
-How to run ***
-cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png
-Processing 512 x 512 image with 2 bits per pixel.
-0.0644059 s
-
-
-This part is pretty important 
-
-
-The metric used to evaluate this work is maximum pixel
-latency. Pixel latency is defined as the time between
-a given pixel entering the program, and the transformed
-pixel at the same co-ordinates leaving the program. The
-goal is to minimise the maximimum latency over all
-pixels. Latency measuring does not start until the first
-pixel enters the pipeline, so performance measurement
-is "on-hold" till that point. However, your program
-must eventually read the first pixel...
-
-
-So essentially any preprocessing can be done before pixels arrive. 
-
-
-cat input1024.raw | ./a.out 1024 1024 2 | convert -size 1024x1024 -depth 2 gray:- output.png
-Processing 1024 x 1024 image with 2 bits per pixel.
-Overall time 0.329756 s
-Read Blob 416990 s
-unpack_blob 0.0132685 s
-process 0.291943 s
-pack_blob 0.00809472 s
-write_blob 0.0161225 s
-
-
-So we should work on process() - which contains predominantly lots of erodes and dilates. 
-
-UPDATE FROM LA RICH:
-
-New source code has been written which deals with streams rather than entire images.
-
-Read stream chunk
-Unpack it
-Repack it
-Write out to stream
-
-Currently working for bit sizes of 1,2,4,8,16.  Doesn't work for 32 currently as we're converting to floats in order to support intrinsic operations to make the dilate and erode super speedy.
-
-Can be verified by running
-
-`diff <(cat script/input512_d16.raw | ./bin/process 512 512 16 2>/dev/null) <(cat script/input512_d16.raw)`
-
-where 16 can be replaced with an alternate bit size.  Should return nothing, this means everything is kosher.
-
-Can't use test script at the moment as we're not testing anything yet.
-
-For dilate we need to manually do layers = 1, as this is just a cross
-	 ___
- __ |___|___
-|___|___|___|
-    |___|
-
-Otherwise we get a diamond, with sides length layers + 1, i.e layers = 2
-         ___
-    i___|___|___ j
- ___|___|___|___|___
-|___|___|_x_|___|___|
-    |___|___|___|
-        |___|
-
-We need to write erode with packs floats into _m128 variables which we can use in intrinsic operations calculating the minimum on a vector of floats.  This allows us to calculate the minimum iterating over ij for four pixels concurrently:
-
-__m128 _mm_min_ps (__m128 a, __m128 b)
-#include "xmmintrin.h"
-Instruction: minps xmm, xmm
-CPUID Flag : SSE
-Description
-Compare packed single-precision (32-bit) floating-point elements in a and b, and store packed minimum values in dst.
-Operation
-FOR j := 0 to 3
-	i := j*32
-	dst[i+31:i] := MIN(a[i+31:i], b[i+31:i])
-ENDFOR
-
-This takes 3 cycles to complete.
-
-
-_m128 pack original pixels
-for i, j:
-	generatexy(i,j)
-	pack pixels[xy_pixel_0, ......., xy_pixel_3]
-	original = _mm_min_ps(original, new);
-
-pack result 0 into result buffer.
-
-That'll do donkey, that'll do.
