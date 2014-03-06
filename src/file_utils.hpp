@@ -18,6 +18,6 @@
 // void write_blob(int, uint64_t, const void*);
 
 bool read_chunk(int, uint32_t, uint32_t*);
-void unpack_chunk(uint32_t, unsigned, uint32_t, uint32_t*, float*, float**, float*);
-void pack_chunk(uint32_t, unsigned, unsigned, uint32_t*, float*, float*, float*);
+void unpack_chunk(uint32_t, unsigned, uint64_t*, uint32_t, uint32_t*, float*, float**, float*);
+void pack_chunk(uint32_t, unsigned, unsigned, uint32_t*, float*);
 bool write_chunk(int, uint32_t, uint32_t*);

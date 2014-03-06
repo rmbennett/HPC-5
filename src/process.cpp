@@ -83,38 +83,48 @@ int main(int argc, char *argv[])
 
         uint32_t bytesToRead = 0;
         uint32_t bitMask = 0;
+        uint32_t pixPerChunk = 0;
 
         switch (bits)
         {
         case 1:
             bytesToRead = 1;
             bitMask = 0x01;
+            pixPerChunk = 8;
             break;
         case 2:
             bytesToRead = 1;
             bitMask = 0x03;
+            pixPerChunk = 4;
             break;
         case 4:
             bytesToRead = 2;
             bitMask = 0x0F;
+            pixPerChunk = 4;
             break;
         case 8:
             bytesToRead = 4;
             bitMask = 0xFF;
+            pixPerChunk = 4;
             break;
         case 16:
             bytesToRead = 8;
             bitMask = 0xFFFF;
+            pixPerChunk = 4;
             break;
         case 32:
             bytesToRead = 16;
             bitMask = 0xFFFFFFFF;
+            pixPerChunk = 4;
             break;
         }
 
         fprintf(stderr, "%d\n", bytesToRead);
 
-        uint32_t pixBufSize = sizeof(float) * w * (2 * levels + 1);
+        uint32_t chunksPerLine = w / pixPerChunk;
+        uint32_t totalChunks = w * h / pixPerChunk;
+
+        uint32_t pixBufSize = sizeof(float) * ((w * (2 * levels)) + pixPerChunk);
 
         fprintf(stderr, "%d\n", pixBufSize);
 
@@ -123,44 +133,58 @@ int main(int argc, char *argv[])
         float *pixBufInsert = pixBufStart;
         float *pixBufCalculate = pixBufStart;
 
+        float *processedResults = (float *)malloc(sizeof(float) * pixPerChunk);
+
         uint32_t *readBuffer = (uint32_t *)malloc(sizeof(uint32_t) * bytesToRead);
         uint32_t *resultBuffer = (uint32_t *)malloc(sizeof(uint32_t) * bytesToRead);
+        uint64_t chunksRead = 0;
+        uint64_t chunksProcessed = 0;
+
+        bool readingInput = true;
 
         while (1)
         {
-        	fprintf(stderr, "Bytes to read %d\n", bytesToRead);
-            if (!read_chunk(STDIN_FILENO, bytesToRead, readBuffer))
-                break;
 
-            fprintf(stderr, "Old Pointer: %d %d\n", pixBufInsert, pixBufStart);
-
-            unpack_chunk(bytesToRead, bits, bitMask, readBuffer, pixBufStart, &pixBufInsert, pixBufEnd);
-
-            fprintf(stderr, "New Pointer: %d, diff: %d\n", pixBufInsert, pixBufInsert - pixBufStart);
-
-            fprintf(stderr, "Some stuff: %d\n",((bytesToRead * 8) / bits));
-
-            float *resPtr = pixBufInsert - ((bytesToRead * 8) / bits);
-            if (resPtr < pixBufStart)
+            if (readingInput)
             {
-                resPtr = pixBufEnd - (pixBufStart - resPtr);
+                // fprintf(stderr, "Bytes to read %d\n", bytesToRead);
+                if (!read_chunk(STDIN_FILENO, bytesToRead, readBuffer))
+                    readingInput = false;
+
+                // fprintf(stderr, "Old Pointer: %d %d\n", pixBufInsert, pixBufStart);
+
+                unpack_chunk(bytesToRead, bits, &chunksRead, bitMask, readBuffer, pixBufStart, &pixBufInsert, pixBufEnd);
+
+                // fprintf(stderr, "New Pointer: %d, diff: %d\n", pixBufInsert, pixBufInsert - pixBufStart);
+
+                // fprintf(stderr, "Some stuff: %d, chunksRead %d\n", ((bytesToRead * 8) / bits), chunksRead);
             }
-            fprintf(stderr, "resPtr %d, start %d\n", resPtr, pixBufStart);
 
-            fprintf(stderr, "%lf %lf %lf %lf\n", resPtr[0], resPtr[1], resPtr[2], resPtr[3]);
-            // fprintf(stderr, "%d %d %d %d\n", pixBufInsert, resPtr, pixBufInsert - resPtr, (bytesToRead * 8) / bits);
+            if (chunksRead > chunksPerLine * levels)
+            {
+                // float *resPtr = pixBufInsert - ((bytesToRead * 8) / bits);
+                // if (resPtr < pixBufStart)
+                // {
+                //     resPtr = pixBufEnd - (pixBufStart - resPtr);
+                // }
+                // fprintf(stderr, "resPtr %d, start %d\n", resPtr, pixBufStart);
 
-            pack_chunk(bytesToRead, bits, bitMask, resultBuffer, pixBufStart, resPtr, pixBufEnd);
+                // fprintf(stderr, "%lf %lf %lf %lf\n", resPtr[0], resPtr[1], resPtr[2], resPtr[3]);
+                // // fprintf(stderr, "%d %d %d %d\n", pixBufInsert, resPtr, pixBufInsert - resPtr, (bytesToRead * 8) / bits);
 
-            fprintf(stderr, "%x %x\n", readBuffer[0], resultBuffer[0]);
+                // processStream(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, chunksRead, pixBufStart, &pixBufCalculate, pixBufEnd, processedResults);
 
-            // sleep(5);
+                pack_chunk(bytesToRead, bits, bitMask, resultBuffer, processedResults);
 
-            // fprintf(stderr, "%lf\n", pixBufInsert[-1]);
+                // fprintf(stderr, "%x %x\n", readBuffer[0], resultBuffer[0]);
 
-            if (!write_chunk(STDOUT_FILENO, bytesToRead, resultBuffer))
-                break;
+                // sleep(5);
 
+                // fprintf(stderr, "%lf\n", pixBufInsert[-1]);
+
+                if (!write_chunk(STDOUT_FILENO, bytesToRead, resultBuffer))
+                    break;
+            }
         }
 
         // fprintf(stderr, "%ld %ld\n", pixBufStart, pixBufEnd);
