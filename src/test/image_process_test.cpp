@@ -79,147 +79,45 @@ int main(int argc, char *argv[])
 
     float *testStreamBuffer  = (float *)malloc(pixBufSize);
 
-    //Test map i,j to dx, dy for levels = 2 as shown below (not used for levels = 1)
-    //          ___
-    //     i___|___|___ j
-    //  ___|___|___|___|___
-    // |___|___|___|___|___|
-    //     |___|___|___|
-    //         |___|
-
-    levels = 2;
-    printf("Levels = 2\n");
-    for (int w = 0; w < levels + 1; w++)
-    {
-        for (int x = 0; x < levels + 1; x++)
-        {
-            printf("dx: %d dy: %d\n", mapIJtoDX(w, x, levels), mapIJtoDY(w, x, levels));
-        }
-    }
-
-    /*
-    0 dx: 0 dy: -2
-    1 dx: 1 dy: -1
-    2 dx: 2 dy: 0
-    3 dx: -1 dy: -1
-    4 dx: 0 dy: 0
-    5 dx: 1 dy: 1
-    6 dx: -2 dy: 0
-    7 dx: -1 dy: 1
-    8 dx: 0 dy: 2 */
-
-    //          ___
-    //     i___|_0_|___ j
-    //  ___|_3_|___|_1_|___
-    // |_6_|___|_4_|___|_2_|
-    //     |_7_|___|_5_|
-    //         |_8_|
-
-    int i = 0;
-    int j = 0;
-    //          ___
-    //     i___|_X_|___ j
-    //  ___|___|___|___|___
-    // |___|___|___|___|___|
-    //     |___|___|___|
-    //         |___|
-
-    assert(mapIJtoDX(i, j, levels) == 0);
-    assert(mapIJtoDY(i, j, levels) == -2);
-
-    i = 1;
-    j = 1;
-    //          ___
-    //     i___|___|___ j
-    //  ___|___|___|___|___
-    // |___|___|_X_|___|___|
-    //     |___|___|___|
-    //         |___|
-
-    assert(mapIJtoDX(i, j, levels) == 0);
-    assert(mapIJtoDY(i, j, levels) == 0);
-
-    i = 1;
-    j = 2;
-    //          ___
-    //     i___|___|___ j
-    //  ___|___|___|___|___
-    // |___|___|___|___|___|
-    //     |___|___|_X_|
-    //         |___|
-
-    assert(mapIJtoDX(i, j, levels) == 1);
-    assert(mapIJtoDY(i, j, levels) == 1);
-
-
     levels = 3;
-
-    printf("Levels = 3\n");
-    for (int w = 0; w < levels + 1; w++)
-    {
-        for (int x = 0; x < levels + 1; x++)
-        {
-            printf("dx: %d dy: %d\n", mapIJtoDX(w, x, levels), mapIJtoDY(w, x, levels));
-        }
-    }
-
-    // 0 dx: 0 dy: -3
-    // 1 dx: 1 dy: -2
-    // 2 dx: 2 dy: -1
-    // 3 dx: 3 dy: 0
-    // 4 dx: -1 dy: -2
-    // 5 dx: 0 dy: -1
-    // 6 dx: 1 dy: 0
-    // 7 dx: 2 dy: 1
-    // 8 dx: -2 dy: -1
-    // 9 dx: -1 dy: 0
-    // 10 dx: 0 dy: 1
-    // 11 dx: 1 dy: 2
-    // 12 dx: -3 dy: 0
-    // 13 dx: -2 dy: 1
-    // 14 dx: -1 dy: 2
-    // 15 dx: 0 dy: 3
-
-    //             ___
-    //         ___|_0_|___
-    //     ___|_4_|___|_1_|___
-    // ___|_8_|___|_5_|___|_2_|___
-    //|12_|___|_9_|___|_6_|___|_3_|
-    //    |13_|___|10_|___|_7_|
-    //        |14_|___|11_|
-    //            |15_|
-
-
     printf("Levels = 3 - 2\n");
     int squareCount = 0;
-    for (int w = 0; w < levels + 1; w++)
+    for (int i = 0; i < levels + 1; i++)
     {
-        for (int x = 0; x < levels + 1; x++)
+        for (int j = 0; j < levels + 1; j++)
         {
             squareCount++;
-            printf("dx: %d dy: %d\n", mapIJKtoDX(w, x, 0, levels), mapIJKtoDY(w, x, 0, levels));
-            if (w == 0)
+            printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels));
+            if (i == 0)
             {
-                for (int y = 1; y < 2 * x; y += 2)
+                for (int k = 1; k < 2 * j; k += 2)
                 {
                     squareCount++;
-                    printf("dx: %d dy: %d\n", mapIJKtoDX(w, x, y, levels), mapIJKtoDY(w, x, y, levels));
+                    printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
                 }
             }
-            else if (x > w && w != 0)
+            else if (i < j && i != 0 && j == levels)
             {
-            	for (int y = 1; y < 2 * w; y += 2)
+            	for (int k = 1; k < 2*(levels - i); k += 2)
                 {
                     squareCount++;
-                    printf("dx: %d dy: %d\n", mapIJKtoDX(w, x, y, levels), mapIJKtoDY(w, x, y, levels));
+                    printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
                 }
             }
         }
     }
 
+    //Should get 25
     printf("%d\n", squareCount);
 
-
+    //             ___
+    //         ___|_1_|___
+    //     ___|11_|_3_|_2_|___
+    // ___|17_|_6_|12_|_5_|_4_|___
+    //|22_|10_|18_|_9_|13_|_8_|_7_|
+    //    |23_|16_|19_|15_|14_|
+    //        |24_|21_|20_|
+    //            |25_|
     //             ___
     //         ___|___|___
     //     ___|___|___|___|___
@@ -228,8 +126,39 @@ int main(int argc, char *argv[])
     //    |___|___|___|___|___|
     //        |___|___|___|
     //            |___|
-
     //Test valid
 
+    levels = 2;
+
+    //TEST VALID PIXEL
+    assert(!validPixel(w, h, 0, 0, -1, -1));
+    assert(!validPixel(w,h,w,h,0,0));
+    assert(!validPixel(w,h,w/2,h-1,5,2));
+
+   	assert(validPixel(w,h,w/2,h/2,(w/2) - 1,(h/2) -1));
+
+   	//Test validPixel and getPixel
+
+   	testStreamBuffer[0] = 50;
+   	testStreamBuffer[0 + w] = 100;
+
+   	unsigned x, y;
+
+   	calculateChunkXY(w, h, &x, &y, 128, chunksPerLine, pixPerChunk);
+
+   	assert(x == 0);
+   	assert(y == 1);
+
+   	assert(validPixel(w,h,x,y,0,-1));
+   	printf("%f\n", testStreamBuffer[0]);
+   	printf("%f\n", testStreamBuffer[512]);
+   	printf("%f\n", testStreamBuffer[1027]);
+   	assert(getPixel(w, h, x, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1027]) == 50);
+
+
+
+
     printf("All Tests Run Successfully\n");
+
+
 }
