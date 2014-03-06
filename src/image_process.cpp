@@ -10,124 +10,447 @@
 #include <time.h>
 #include <stddef.h>
 #include <sys/sysinfo.h>
+#include <cstring>
+
+#include <limits> //Include max and min for float
+
+#include "xmmintrin.h" // Intrinsic Functions!
+
+#define FLOATMIN std::numeric_limits<float>::min()
+#define FLOATMAX std::numeric_limits<float>::max()
+
+#define MAXPIX(w,h,x,y,dx,dy,memStart,pPtr,memEnd) validPixel(w,h,x,y,dx,dy)?getPixel(w,h,x,y,dx,dy,memStart,pPtr,memEnd):FLOATMAX
+#define MINPIX(w,h,x,y,dx,dy,memStart,pPtr,memEnd) validPixel(w,h,x,y,dx,dy)?getPixel(w,h,x,y,dx,dy,memStart,pPtr,memEnd):FLOATMIN
+
+#define MAXPIXIJ(w,h,x,y,i,j,levels,memStart,pPtr,memEnd) validPixel(w,h,x,y,mapIJtoDX(i,j,levels),mapIJtoDY(i,j,levels))?getPixel(w,h,x,y,mapIJtoDX(i,j,levels),mapIJtoDY(i,j,levels),memStart,pPtr,memEnd):FLOATMAX
+#define MINPIXIJ(w,h,x,y,i,j,levels,memStart,pPtr,memEnd) validPixel(w,h,x,y,mapIJtoDX(i,j,levels),mapIJtoDY(i,j,levels))?getPixel(w,h,x,y,mapIJtoDX(i,j,levels),mapIJtoDY(i,j,levels),memStart,pPtr,memEnd):FLOATMIN
 
 #include "image_process.hpp"
 
-// uint32_t vmin(uint32_t a, uint32_t b)
-// { return std::min(a,b); }
+//MIN
+void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint64_t *chunksProcessed, uint64_t chunksRead, float *pixBufStart, float *pixCalculate, float *pixBufEnd, float *processedResultsBuffer)
+{
+    //Cross Shape
+    if (levels == 1)
+    {
+        if (pixPerChunk == 4)
+        {
+            unsigned x;
+            unsigned y;
+            calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
 
-// uint32_t vmin(uint32_t a, uint32_t b, uint32_t c)
-// { return std::min(a,std::min(b,c)); }
+            float *pix0 = pixCalculate;
+            float *pix1 = pixCalculate + 1;
+            float *pix2 = pixCalculate + 2;
+            float *pix3 = pixCalculate + 3;
 
-// uint32_t vmin(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-// { return std::min(std::min(a,d),std::min(b,c)); }
+            __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
 
-// uint32_t vmin(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
-// { return std::min(e, std::min(std::min(a,d),std::min(b,c))); }
+            __m128 comparisonPix;
+
+            //Above
+            comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 0, -1, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 0, -1, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 0, -1, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 0, -1, pixBufStart, pix3, pixBufEnd));
+
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+            //Below
+            comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 0, 1, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 0, 1, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 0, 1, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 0, 1, pixBufStart, pix3, pixBufEnd));
+
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+            //Left
+            comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, -1, 0, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, -1, 0, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, -1, 0, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, -1, 0, pixBufStart, pix3, pixBufEnd));
+
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+            //Right
+            comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 1, 0, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 1, 0, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 1, 0, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 1, 0, pixBufStart, pix3, pixBufEnd));
+
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+            //Store the result
+            _mm_store_ps(processedResultsBuffer, originalPix);
+
+            return;
+        }
+        //Else we have 8, must be 1 bit packed so do it twice
+        else
+        {
+            for (int i = 0; i < 1; i++)
+            {
+                unsigned x;
+                unsigned y;
+                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+                x += 4 * i;
+
+                float *pix0 = pixCalculate;
+                float *pix1 = pixCalculate + 1;
+                float *pix2 = pixCalculate + 2;
+                float *pix3 = pixCalculate + 3;
+
+                __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
+
+                __m128 comparisonPix;
+
+                //Above
+                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 0, -1, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 0, -1, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 0, -1, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 0, -1, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Below
+                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 0, 1, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 0, 1, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 0, 1, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 0, 1, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Left
+                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, -1, 0, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, -1, 0, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, -1, 0, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, -1, 0, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Right
+                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 1, 0, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 1, 0, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 1, 0, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 1, 0, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Store the result
+
+                _mm_store_ps(processedResultsBuffer, originalPix);
+
+                pixCalculate += 4;
+                processedResultsBuffer += 4;
+
+            }
+            return;
+
+        }
+    }
+    //Diamond
+    else
+    {
+        if (pixPerChunk == 4)
+        {
+            unsigned x;
+            unsigned y;
+            calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+            float *pix0 = pixCalculate;
+            float *pix1 = pixCalculate + 1;
+            float *pix2 = pixCalculate + 2;
+            float *pix3 = pixCalculate + 3;
+
+            __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
+
+            __m128 comparisonPix;
+
+            for (int i = 0; i < levels + 1; i++)
+            {
+                for (int j = 0; j < levels + 1; j++)
+                {
+                    comparisonPix = _mm_set_ps(MAXPIXIJ(w, h, x, y, i, j, levels, pixBufStart, pix0, pixBufEnd), MAXPIXIJ(w, h, x + 1, y, i, j, levels, pixBufStart, pix1, pixBufEnd), MAXPIXIJ(w, h, x + 2, y, i, j, levels, pixBufStart, pix2, pixBufEnd), MAXPIXIJ(w, h, x + 3, y, i, j, levels, pixBufStart, pix3, pixBufEnd));
+
+                    originalPix = _mm_min_ps(originalPix, comparisonPix);
+                }
+            }
+
+            _mm_store_ps(processedResultsBuffer, originalPix);
+        }
+        else
+        {
+            for (int i = 0; i < 1; i++)
+            {
+                unsigned x;
+                unsigned y;
+                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+                x += 4 * i;
+
+                float *pix0 = pixCalculate;
+                float *pix1 = pixCalculate + 1;
+                float *pix2 = pixCalculate + 2;
+                float *pix3 = pixCalculate + 3;
+
+                __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
+
+                __m128 comparisonPix;
+
+                for (int i = 0; i < levels + 1; i++)
+                {
+                    for (int j = 0; j < levels + 1; j++)
+                    {
+                        comparisonPix = _mm_set_ps(MAXPIXIJ(w, h, x, y, i, j, levels, pixBufStart, pix0, pixBufEnd), MAXPIXIJ(w, h, x + 1, y, i, j, levels, pixBufStart, pix1, pixBufEnd), MAXPIXIJ(w, h, x + 2, y, i, j, levels, pixBufStart, pix2, pixBufEnd), MAXPIXIJ(w, h, x + 3, y, i, j, levels, pixBufStart, pix3, pixBufEnd));
+
+                        originalPix = _mm_min_ps(originalPix, comparisonPix);
+                    }
+                }
+
+                _mm_store_ps(processedResultsBuffer, originalPix);
+
+                pixCalculate += 4;
+                processedResultsBuffer += 4;
+            }
+
+        }
+
+    }
+}
+
+//MAX
+void dilate(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint64_t *chunksProcessed, uint64_t chunksRead, float *pixBufStart, float *pixCalculate, float *pixBufEnd, float *processedResultsBuffer)
+{
+    if (levels == 1)
+    {
+        if (pixPerChunk == 4)
+        {
+            unsigned x;
+            unsigned y;
+            calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+            float *pix0 = pixCalculate;
+            float *pix1 = pixCalculate + 1;
+            float *pix2 = pixCalculate + 2;
+            float *pix3 = pixCalculate + 3;
+
+            __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
 
 
-// void erode(unsigned w, unsigned h, const std::vector<uint32_t> &input, std::vector<uint32_t> &output)
-// {
-// 	auto in=[&](int x, int y) -> uint32_t { return input[y*w+x]; };
-// 	auto out=[&](int x, int y) -> uint32_t & {return output[y*w+x]; };
-	
-// 	for(unsigned x=0;x<w;x++){
-// 		if(x==0)
-// 		{
-// 			out(0,0)=vmin(in(0,0), in(0,1), in(1,0));
-// 			for(unsigned y=1;y<h-1;y++)
-// 			{
-// 				out(0,y)=vmin(in(0,y), in(0,y-1), in(1,y), in(0,y+1));
-// 			}
-// 			out(0,h-1)=vmin(in(0,h-1), in(0,h-2), in(1,h-1));
-// 		}
-// 		else if(x<w-1)
-// 		{
-// 			out(x,0)=vmin(in(x,0), in(x-1,0), in(x,1), in(x+1,0));
-// 			for(unsigned y=1;y<h-1;y++)
-// 			{
-// 				out(x,y)=vmin(in(x,y), in(x-1,y), in(x,y-1), in(x,y+1), in(x+1,y));
-// 			}
-// 			out(x,h-1)=vmin(in(x,h-1), in(x-1,h-1), in(x,h-2), in(x+1,h-1));
-// 		}
-// 		else
-// 		{
-// 			out(w-1,0)=vmin(in(w-1,0), in(w-1,1), in(w-2,0));
-// 			for(unsigned y=1;y<h-1;y++)
-// 			{
-// 				out(w-1,y)=vmin(in(w-1,y), in(w-1,y-1), in(w-2,y), in(w-1,y+1));
-// 			}
-// 			out(w-1,h-1)=vmin(in(w-1,h-1), in(w-1,h-2), in(w-2,h-1));
-// 		}
-// 	}
-// }
+            __m128 comparisonPix;
 
-// uint32_t vmax(uint32_t a, uint32_t b)
-// { return std::max(a,b); }
+            //Above
+            comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 0, -1, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 0, -1, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 0, -1, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 0, -1, pixBufStart, pix3, pixBufEnd));
 
-// uint32_t vmax(uint32_t a, uint32_t b, uint32_t c)
-// { return std::max(a,std::max(b,c)); }
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
 
-// uint32_t vmax(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-// { return std::max(std::max(a,d),std::max(b,c)); }
+            //Below
+            comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 0, 1, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 0, 1, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 0, 1, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 0, 1, pixBufStart, pix3, pixBufEnd));
 
-// uint32_t vmax(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
-// { return std::max(e, std::max(std::max(a,d),std::max(b,c))); }
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
 
-// void dilate(unsigned w, unsigned h, const std::vector<uint32_t> &input, std::vector<uint32_t> &output)
-// {
-// 	auto in=[&](int x, int y) -> uint32_t { return input[y*w+x]; };
-// 	auto out=[&](int x, int y) -> uint32_t & {return output[y*w+x]; };
-	
-// 	for(unsigned x=0;x<w;x++)
-// 	{
-// 		if(x==0)
-// 		{
-// 			out(0,0)=vmax(in(0,0), in(0,1), in(1,0));
-// 			for(unsigned y=1;y<h-1;y++)
-// 			{
-// 				out(0,y)=vmax(in(0,y), in(0,y-1), in(1,y), in(0,y+1));
-// 			}
-// 			out(0,h-1)=vmax(in(0,h-1), in(0,h-2), in(1,h-1));
-// 		}
-// 		else if(x<w-1)
-// 		{
-// 			out(x,0)=vmax(in(x,0), in(x-1,0), in(x,1), in(x+1,0));
-// 			for(unsigned y=1;y<h-1;y++)
-// 			{
-// 				out(x,y)=vmax(in(x,y), in(x-1,y), in(x,y-1), in(x,y+1), in(x+1,y));
-// 			}
-// 			out(x,h-1)=vmax(in(x,h-1), in(x-1,h-1), in(x,h-2), in(x+1,h-1));
-// 		}
-// 		else
-// 		{
-// 			out(w-1,0)=vmax(in(w-1,0), in(w-1,1), in(w-2,0));
-// 			for(unsigned y=1;y<h-1;y++){
-// 				out(w-1,y)=vmax(in(w-1,y), in(w-1,y-1), in(w-2,y), in(w-1,y+1));
-// 			}
-// 			out(w-1,h-1)=vmax(in(w-1,h-1), in(w-1,h-2), in(w-2,h-1));
-// 		}
-// 	}
-// }
+            //Left
+            comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, -1, 0, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, -1, 0, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, -1, 0, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, -1, 0, pixBufStart, pix3, pixBufEnd));
 
-// void process(int levels, unsigned w, unsigned h, unsigned /*bits*/, std::vector<uint32_t> &pixels)
-// {
-// 	std::vector<uint32_t> buffer(w*h);
-	
-// 	// Depending on whether levels is positive or negative,
-// 	// we flip the order round.
-// 	auto fwd=levels < 0 ? erode : dilate;
-// 	auto rev=levels < 0 ? dilate : erode;
-	
-// 	for(int i=0;i<std::abs(levels);i++)
-// 	{
-// 		fwd(w, h, pixels, buffer);
-// 		std::swap(pixels, buffer);
-// 	}
-// 	for(int i=0;i<std::abs(levels);i++)
-// 	{
-// 		rev(w,h,pixels, buffer);
-// 		std::swap(pixels, buffer);
-// 	}
-// }
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
 
+            //Right
+            comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 1, 0, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 1, 0, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 1, 0, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 1, 0, pixBufStart, pix3, pixBufEnd));
+
+            originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+            //Store the result
+            _mm_store_ps(processedResultsBuffer, originalPix);
+
+            return;
+        }
+        //Else we have 8, must be 1 bit packed
+        else
+        {
+            for (int i = 0; i < 1; i++)
+            {
+                unsigned x;
+                unsigned y;
+                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+                x += 4 * i;
+
+                float *pix0 = pixCalculate;
+                float *pix1 = pixCalculate + 1;
+                float *pix2 = pixCalculate + 2;
+                float *pix3 = pixCalculate + 3;
+
+                __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
+
+
+                __m128 comparisonPix;
+
+                //Above
+                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 0, -1, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 0, -1, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 0, -1, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 0, -1, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Below
+                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 0, 1, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 0, 1, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 0, 1, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 0, 1, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Left
+                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, -1, 0, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, -1, 0, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, -1, 0, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, -1, 0, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Right
+                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 1, 0, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 1, 0, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 1, 0, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 1, 0, pixBufStart, pix3, pixBufEnd));
+
+                originalPix = _mm_min_ps(originalPix, comparisonPix);
+
+                //Store the result
+                _mm_store_ps(processedResultsBuffer, originalPix);
+
+                pixCalculate += 4;
+                processedResultsBuffer += 4;
+
+            }
+            return;
+        }
+    }
+    //Diamond
+    else
+    {
+        if (pixPerChunk == 4)
+        {
+            unsigned x;
+            unsigned y;
+            calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+            float *pix0 = pixCalculate;
+            float *pix1 = pixCalculate + 1;
+            float *pix2 = pixCalculate + 2;
+            float *pix3 = pixCalculate + 3;
+
+            __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
+
+            __m128 comparisonPix;
+
+            for (int i = 0; i < levels + 1; i++)
+            {
+                for (int j = 0; j < levels + 1; j++)
+                {
+                    comparisonPix = _mm_set_ps(MINPIXIJ(w, h, x, y, i, j, levels, pixBufStart, pix0, pixBufEnd), MINPIXIJ(w, h, x + 1, y, i, j, levels, pixBufStart, pix1, pixBufEnd), MINPIXIJ(w, h, x + 2, y, i, j, levels, pixBufStart, pix2, pixBufEnd), MINPIXIJ(w, h, x + 3, y, i, j, levels, pixBufStart, pix3, pixBufEnd));
+
+                    originalPix = _mm_min_ps(originalPix, comparisonPix);
+                }
+            }
+
+            _mm_store_ps(processedResultsBuffer, originalPix);
+
+            return;
+        }
+        else
+        {
+            for (int i = 0; i < 1; i++)
+            {
+                unsigned x;
+                unsigned y;
+                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+                x += 4 * i;
+
+                float *pix0 = pixCalculate;
+                float *pix1 = pixCalculate + 1;
+                float *pix2 = pixCalculate + 2;
+                float *pix3 = pixCalculate + 3;
+
+                __m128 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
+
+                __m128 comparisonPix;
+
+                for (int i = 0; i < levels + 1; i++)
+                {
+                    for (int j = 0; j < levels + 1; j++)
+                    {
+                        comparisonPix = _mm_set_ps(MINPIXIJ(w, h, x, y, i, j, levels, pixBufStart, pix0, pixBufEnd), MINPIXIJ(w, h, x + 1, y, i, j, levels, pixBufStart, pix1, pixBufEnd), MINPIXIJ(w, h, x + 2, y, i, j, levels, pixBufStart, pix2, pixBufEnd), MINPIXIJ(w, h, x + 3, y, i, j, levels, pixBufStart, pix3, pixBufEnd));
+
+                        originalPix = _mm_min_ps(originalPix, comparisonPix);
+                    }
+                }
+
+                _mm_store_ps(processedResultsBuffer, originalPix);
+
+                pixCalculate += 4;
+                processedResultsBuffer += 4;
+            }
+
+            return;
+
+        }
+
+    }
+}
+
+//Check if pixel to compare is in image
+bool validPixel(unsigned w, unsigned h, unsigned x, unsigned y, int dx, int dy)
+{
+    if (x + dx < 0 || x + dx >= w)
+    {
+        return false;
+    }
+    else if (y + dy < 0 || y + dy >= h)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+float getPixel(unsigned w, unsigned h, unsigned x, unsigned y, int dx, int dy, float *memStart, float *pixPtr, float *memEnd)
+{
+    float *result = pixPtr + dx + w * dy;
+
+    if (result < memStart)
+    {
+        result = memEnd - (memStart - result);
+    }
+    else if (result >= memEnd)
+    {
+        result = memStart + (result - memEnd);
+    }
+
+    return *result;
+
+}
+
+int mapIJtoDX(int i, int j, int levels)
+{
+    return j - i;
+}
+
+int mapIJtoDY(int i, int j, int levels)
+{
+    return -levels + i + j;
+}
+
+int mapIJKtoDX(int i, int j, int k, int levels)
+{
+    return j - i - k;
+}
+
+int mapIJKtoDY(int i, int j, int k, int levels)
+{
+    return -levels + i + j;
+}
+
+void mapIJtodXdY(int i, int j, int levels, int *dX, int *dY)
+{
+    *dX = j - i;
+    *dY = -levels + i + j;
+}
+
+void calculateChunkXY(unsigned w, unsigned h, unsigned *x, unsigned *y, uint64_t chunksProcessed, uint32_t chunksPerLine, uint32_t pixPerChunk)
+{
+    *x = chunksProcessed % chunksPerLine * pixPerChunk;
+    *y = chunksProcessed / chunksPerLine;
+}
+
+void processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint64_t *chunksProcessed, uint64_t chunksRead, float *pixBufStart, float **pixCalculate, float *pixBufEnd, float *processedResultsBuffer)
+{
+    switch (levels > 0)
+    {
+    case true:
+        // dilate();
+        std::memcpy(*pixCalculate, processedResultsBuffer, sizeof(float) * pixPerChunk);
+        // erode();
+        break;
+    case false:
+        // erode();
+        std::memcpy(*pixCalculate, processedResultsBuffer, sizeof(float) * pixPerChunk);
+        // dilate();
+        break;
+    }
+
+    (*pixCalculate) += pixPerChunk;
+    if (*pixCalculate == pixBufEnd)
+    {
+        (*pixCalculate) = pixBufStart;
+    }
+}

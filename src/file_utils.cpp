@@ -130,9 +130,9 @@ bool read_chunk(int fd, uint32_t bytesToRead, uint32_t *readBuffer)
 
 }
 
-void unpack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *readBuffer, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd)
+void unpack_chunk(uint32_t bytesToRead, unsigned bits, uint64_t *chunksRead, unsigned mask, uint32_t *readBuffer, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd)
 {
-    for (int i = 0; i < (bytesRead * 8) / bits; i++)
+    for (int i = 0; i < (bytesToRead * 8) / bits; i++)
     {
     	fprintf(stderr, "Index: %d\n", (i * bits) / (8 * sizeof(uint32_t)));
         **pixBufInsertPtr = (float)(readBuffer[(i * bits) / (8 * sizeof(uint32_t))] >> (i * bits) & mask);
@@ -142,23 +142,21 @@ void unpack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *re
             *pixBufInsertPtr = pixBufStart;
         }
     }
+    (*chunksRead)++;
 }
 
-void pack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *resultBuffer, float *resBufStart, float *outputBuffer, float *resBufEnd)
+void pack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *resultBuffer, float *resultsToPack)
 {
     uint32_t buffer = 0;
     unsigned bufferedBits = 0;
 
     for (unsigned i = 0; i < (bytesRead * 8) / bits; i++)
     {
-    	fprintf(stderr, "%d\n", uint32_t(*outputBuffer));
-        buffer = buffer | ((uint32_t(*outputBuffer) & mask) << bufferedBits);
+    	fprintf(stderr, "%d\n", uint32_t(*resultsToPack));
+        buffer = buffer | ((uint32_t(*resultsToPack) & mask) << bufferedBits);
         bufferedBits += bits;
 
-        if (outputBuffer++ == resBufEnd)
-        {
-            outputBuffer = resBufStart;
-        }
+        resultsToPack++;
 
         if (bufferedBits == 32 || i == ((bytesRead * 8) / bits) - 1)
         {
