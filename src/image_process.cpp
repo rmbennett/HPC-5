@@ -30,7 +30,7 @@
 #include "image_process.hpp"
 
 //MIN
-void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint64_t *chunksProcessed, uint64_t chunksRead, float *pixBufStart, float *pixCalculate, float *pixBufEnd, float *processedResultsBuffer, bool doneFirst)
+void erodeChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint64_t *chunksProcessed, uint64_t chunksRead, float *pixBufStart, float *pixCalculate, float *pixBufEnd, float *processedResultsBuffer, bool doneFirst
 {
     //Cross Shape
     if (levels == 1)
@@ -49,7 +49,9 @@ void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t ch
             __m128 originalPix;
 
             if (doneFirst)
+            {
                 originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
+            }
             else
                 originalPix = _mm_set_ps(processedResultsBuffer[0], processedResultsBuffer[1], processedResultsBuffer[2], processedResultsBuffer[3]);
 
@@ -76,7 +78,7 @@ void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t ch
             originalPix = _mm_min_ps(originalPix, comparisonPix);
 
             //Store the result
-            _mm_store_ps(processedResultsBuffer, originalPix);
+            _mm_storer_ps(processedResultsBuffer, originalPix);
 
             return;
         }
@@ -127,7 +129,7 @@ void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t ch
 
                 //Store the result
 
-                _mm_store_ps(processedResultsBuffer, originalPix);
+                _mm_storer_ps(processedResultsBuffer, originalPix);
 
                 pixCalculate += 4;
                 processedResultsBuffer += 4;
@@ -190,7 +192,7 @@ void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t ch
                 }
             }
 
-            _mm_store_ps(processedResultsBuffer, originalPix);
+            _mm_storer_ps(processedResultsBuffer, originalPix);
         }
         else
         {
@@ -246,7 +248,7 @@ void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t ch
                     }
                 }
 
-                _mm_store_ps(processedResultsBuffer, originalPix);
+                _mm_storer_ps(processedResultsBuffer, originalPix);
 
                 pixCalculate += 4;
                 processedResultsBuffer += 4;
@@ -258,7 +260,7 @@ void erode(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t ch
 }
 
 //MAX
-void dilate(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint64_t *chunksProcessed, uint64_t chunksRead, float *pixBufStart, float *pixCalculate, float *pixBufEnd, float *processedResultsBuffer, bool doneFirst)
+void dilateChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint64_t *chunksProcessed, uint64_t chunksRead, float *pixBufStart, float *pixCalculate, float *pixBufEnd, float *processedResultsBuffer, bool doneFirst)
 {
     if (levels == 1)
     {
@@ -303,7 +305,7 @@ void dilate(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t c
             originalPix = _mm_min_ps(originalPix, comparisonPix);
 
             //Store the result
-            _mm_store_ps(processedResultsBuffer, originalPix);
+            _mm_storer_ps(processedResultsBuffer, originalPix);
 
             return;
         }
@@ -353,7 +355,7 @@ void dilate(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t c
                 originalPix = _mm_min_ps(originalPix, comparisonPix);
 
                 //Store the result
-                _mm_store_ps(processedResultsBuffer, originalPix);
+                _mm_storer_ps(processedResultsBuffer, originalPix);
 
                 pixCalculate += 4;
                 processedResultsBuffer += 4;
@@ -415,7 +417,7 @@ void dilate(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t c
                 }
             }
 
-            _mm_store_ps(processedResultsBuffer, originalPix);
+            _mm_storer_ps(processedResultsBuffer, originalPix);
 
             return;
         }
@@ -473,7 +475,7 @@ void dilate(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t c
                     }
                 }
 
-                _mm_store_ps(processedResultsBuffer, originalPix);
+                _mm_storer_ps(processedResultsBuffer, originalPix);
 
                 pixCalculate += 4;
                 processedResultsBuffer += 4;

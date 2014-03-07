@@ -150,13 +150,54 @@ int main(int argc, char *argv[])
    	assert(y == 1);
 
    	assert(validPixel(w,h,x,y,0,-1));
-   	printf("%f\n", testStreamBuffer[0]);
-   	printf("%f\n", testStreamBuffer[512]);
-   	printf("%f\n", testStreamBuffer[1027]);
    	assert(getPixel(w, h, x, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1027]) == 50);
 
 
+   	// ERODE TEST TOP LEFT CORNER
+   	// 5 1 5 3 7....
+   	// 1 2 3 4....
 
+   	// Should give
+   	// 1 1 1 3 in results Buffer
+
+   	levels = 1;
+   	uint64_t chunksProcessed = 0; //Process top left corner
+   	uint64_t chunksRead = 128; // We've read full width + 1 chunk
+   	float *pixCalculate = &testStreamBuffer[0];
+
+   	float *processedResultsBuffer = (float *)malloc(sizeof(float) * pixPerChunk);
+
+   	testStreamBuffer[0] = 5;
+   	testStreamBuffer[1] = 1;
+   	testStreamBuffer[2] = 5;
+   	testStreamBuffer[3] = 3;
+   	testStreamBuffer[4] = 7;
+   	testStreamBuffer[w] = 1;
+   	testStreamBuffer[w+1] = 2;
+   	testStreamBuffer[w +2] = 3;
+   	testStreamBuffer[w+3] = 4;
+
+   	calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
+   	assert(x == 0);
+   	assert(y == 0);
+
+   	//Test correct Pixels are fetched
+   	assert(getPixel(w,h,0,0,0,1,&testStreamBuffer[0],&testStreamBuffer[0],&testStreamBuffer[1027]) == 1);
+   	assert(getPixel(w,h,1,0,0,1,&testStreamBuffer[0],&testStreamBuffer[1],&testStreamBuffer[1027]) == 2);
+   	assert(getPixel(w,h,2,0,0,1,&testStreamBuffer[0],&testStreamBuffer[2],&testStreamBuffer[1027]) == 3);
+   	assert(getPixel(w,h,3,0,0,1,&testStreamBuffer[0],&testStreamBuffer[3],&testStreamBuffer[1027]) == 4);
+
+   	//Test the erode!
+
+   	// erode(unsigned int, unsigned int, int, unsigned int, unsigned int, unsigned long*, unsigned long, float*, float**, float*, float*, bool)
+   	erode(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, chunksRead, &testStreamBuffer[0], pixCalculate, &testStreamBuffer[1027], processedResultsBuffer, true);
+
+   	printf("%f %f %f %f\n", processedResultsBuffer[0], processedResultsBuffer[1], processedResultsBuffer[2], processedResultsBuffer[3]);
+
+   	assert(processedResultsBuffer[0] == 1);
+   	assert(processedResultsBuffer[1] == 1);
+   	assert(processedResultsBuffer[2] == 1);
+   	assert(processedResultsBuffer[3] == 3);
 
     printf("All Tests Run Successfully\n");
 
