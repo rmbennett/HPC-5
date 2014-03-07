@@ -26,20 +26,72 @@ bool read_chunk(int fd, uint32_t bytesToRead, uint32_t *readBuffer)
 
 }
 
-void unpack_chunk(uint32_t bytesToRead, unsigned bits, uint64_t *chunksRead, unsigned mask, uint32_t *readBuffer, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd)
+uint32_t shuffle32(unsigned bits, uint32_t x)
 {
-    for (int i = 0; i < (bytesToRead * 8) / bits; i++)
-    {
-    	fprintf(stderr, "Index: %d\n", (i * bits) / (8 * sizeof(uint32_t)));
-        **pixBufInsertPtr = (float)(readBuffer[(i * bits) / (8 * sizeof(uint32_t))] >> (i * bits) & mask);
-        (*pixBufInsertPtr)++;
-        if (*pixBufInsertPtr == pixBufEnd)
-        {
-            *pixBufInsertPtr = pixBufStart;
-        }
-    }
-    (*chunksRead)++;
+	if(bits==1){
+		x=((x&0x01010101ul)<<7)
+			| ((x&0x02020202ul)<<5)
+			| ((x&0x04040404ul)<<3)
+			| ((x&0x08080808ul)<<1)
+			| ((x&0x10101010ul)>>1)
+			| ((x&0x20202020ul)>>3)
+			| ((x&0x40404040ul)>>5)
+			| ((x&0x80808080ul)>>7);
+	}else if(bits==2){
+		x=((x&0x03030303ull)<<6)
+			| ((x&0x0c0c0c0cul)<<2)
+			| ((x&0x30303030ul)>>2)
+			| ((x&0xc0c0c0c0ul)>>6);
+	}else if(bits==4){
+		x=((x&0x0f0f0f0ful)<<4)
+			| ((x&0xf0f0f0f0ul)>>4);
+	}
+	return x;
 }
+
+/*! Take data packed into incoming format, and exand to one integer per pixel */
+void unpack_blob(unsigned w, unsigned h, uint32_t bytesToRead, unsigned bits, uint64_t *chunksRead, uint32_t *readBuffer, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd)
+{
+	uint32_t buffer=0;
+	unsigned bufferedBits=0;
+	
+	const uint32_t MASK=0xFFFFFFFFUL>>(32-bits);
+	
+	for(unsigned i=0;i<(bytesToRead * 8) / bits;i++){
+		if(bufferedBits==0){
+			buffer=shuffle32(bits, *readBuffer++);
+			bufferedBits=32;
+		}
+		
+		**pixBufInsertPtr=buffer&MASK;
+		(*pixBufInsertPtr)++;
+		if (*pixBufInsertPtr > pixBufEnd)
+		{
+			*pixBufInsertPtr = pixBufStart;
+		}
+		buffer=buffer>>bits;
+		bufferedBits-=bits;
+	}
+	
+	// assert(bufferedBits==0);
+	(*chunksRead)++;
+
+}
+
+// void unpack_chunk(uint32_t bytesToRead, unsigned bits, uint64_t *chunksRead, unsigned mask, uint32_t *readBuffer, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd)
+// {
+//     for (int i = 0; i < (bytesToRead * 8) / bits; i++)
+//     {
+//         **pixBufInsertPtr = (float)(readBuffer[(i * bits) / (8 * sizeof(uint32_t))] >> (i * bits) & mask);
+//         (*pixBufInsertPtr)++;
+//         if (*pixBufInsertPtr > pixBufEnd)
+//         {
+//             *pixBufInsertPtr = pixBufStart;
+//         }
+//     }
+//     (*chunksRead)++;
+// }
+
 
 void pack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *resultBuffer, float *resultsToPack)
 {
@@ -48,7 +100,6 @@ void pack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *resu
 
     for (unsigned i = 0; i < (bytesRead * 8) / bits; i++)
     {
-    	fprintf(stderr, "%d\n", uint32_t(*resultsToPack));
         buffer = buffer | ((uint32_t(*resultsToPack) & mask) << bufferedBits);
         bufferedBits += bits;
 
@@ -56,8 +107,7 @@ void pack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *resu
 
         if (bufferedBits == 32 || i == ((bytesRead * 8) / bits) - 1)
         {
-        	fprintf(stderr, "Writing to resbuf\n");
-            *resultBuffer = buffer;
+            *resultBuffer = shuffle32(bits, buffer);
             resultBuffer++;
             buffer = 0;
             bufferedBits = 0;

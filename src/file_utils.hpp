@@ -18,6 +18,9 @@
 // void write_blob(int, uint64_t, const void*);
 
 bool read_chunk(int, uint32_t, uint32_t*);
-void unpack_chunk(uint32_t, unsigned, uint64_t*, uint32_t, uint32_t*, float*, float**, float*);
+uint32_t shuffle32(unsigned bits, uint32_t x);
+void unpack_blob(unsigned w, unsigned h, uint32_t bytesToRead, unsigned bits, uint64_t *chunksRead, uint32_t *readBuffer, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd);
+// void unpack_chunk(uint32_t, unsigned, uint64_t*, uint32_t, uint32_t*, float*, float**, float*);
+// void pack_blob(unsigned w, unsigned h, uint32_t bytesToRead, unsigned bits, float *resultsToPack, uint32_t *resultBuffer);
 void pack_chunk(uint32_t, unsigned, unsigned, uint32_t*, float*);
 bool write_chunk(int, uint32_t, uint32_t*);

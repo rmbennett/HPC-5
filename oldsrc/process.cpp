@@ -19,7 +19,6 @@
 
 #include "file_utils.hpp"
 #include "image_process.hpp"
-#include "cl_process.hpp"
 
 /*
 This is a program for performing morphological operations in gray-scale
@@ -264,7 +263,7 @@ int main(int argc, char *argv[])
 			if(!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
 				break;	// No more images
 			//s4 = stamp();
-			unpack_blob(w, h, bits, &raw[0], &pixels[0]);		
+			unpack_blob(w, h, bits, &raw[0], &pixels[0]);	
 			//s5 = stamp();
 			process(levels, w, h, bits, pixels);
 			//invert(levels, w, h, bits, pixels);

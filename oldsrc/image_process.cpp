@@ -28,6 +28,7 @@ uint32_t vmin(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
 
 void erode(unsigned w, unsigned h, const std::vector<uint32_t> &input, std::vector<uint32_t> &output)
 {
+	fprintf(stderr, "Erode\n");
 	auto in=[&](int x, int y) -> uint32_t { return input[y*w+x]; };
 	auto out=[&](int x, int y) -> uint32_t & {return output[y*w+x]; };
 	
@@ -76,6 +77,8 @@ uint32_t vmax(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
 
 void dilate(unsigned w, unsigned h, const std::vector<uint32_t> &input, std::vector<uint32_t> &output)
 {
+
+	fprintf(stderr, "Dilate\n");
 	auto in=[&](int x, int y) -> uint32_t { return input[y*w+x]; };
 	auto out=[&](int x, int y) -> uint32_t & {return output[y*w+x]; };
 	

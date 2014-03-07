@@ -14,17 +14,6 @@
 #include "file_utils.hpp"
 #include "image_process.hpp"
 
-// You may want to play with this to check you understand what is going on
-void invert(int levels, unsigned w, unsigned h, unsigned bits, std::vector<uint32_t> &pixels)
-{
-    uint32_t mask = 0xFFFFFFFFul >> bits;
-
-    for (unsigned i = 0; i < w * h; i++)
-    {
-        pixels[i] = mask - pixels[i];
-    }
-}
-
 //Timing function - from Advanced Computer Architecture - Coursework 2 - Prof. Kelly
 long stamp()
 {
@@ -133,91 +122,66 @@ int main(int argc, char *argv[])
         float *pixBufInsert = pixBufStart;
         float *pixBufCalculate = pixBufStart;
 
-        float *processedResults = (float *)malloc(sizeof(float) * pixPerChunk);
+        float *irStart = (float *)malloc(pixBufSize);
+        float *irEnd = irStart + pixBufSize / sizeof(float);
+        float *irInsert = irStart;
+        float *irCalculate = irStart;
+
+
+        float *finalResult = (float *)malloc(sizeof(float) * pixPerChunk);
 
         uint32_t *readBuffer = (uint32_t *)malloc(sizeof(uint32_t) * bytesToRead);
         uint32_t *resultBuffer = (uint32_t *)malloc(sizeof(uint32_t) * bytesToRead);
-        uint64_t chunksRead = 0;
-        uint64_t chunksProcessed = 0;
 
-        bool readingInput = true;
+        uint64_t chunksRead = 0;
+        uint64_t originalChunksProcessed = 0;
+        uint64_t irChunksProcessed = 0;
 
         while (1)
         {
 
-            if (readingInput)
+            if (chunksRead < (totalChunks))
             {
-                // fprintf(stderr, "Bytes to read %d\n", bytesToRead);
                 if (!read_chunk(STDIN_FILENO, bytesToRead, readBuffer))
-                    readingInput = false;
-
-                // fprintf(stderr, "Old Pointer: %d %d\n", pixBufInsert, pixBufStart);
-
-                unpack_chunk(bytesToRead, bits, &chunksRead, bitMask, readBuffer, pixBufStart, &pixBufInsert, pixBufEnd);
-
-                // fprintf(stderr, "New Pointer: %d, diff: %d\n", pixBufInsert, pixBufInsert - pixBufStart);
-
-                // fprintf(stderr, "Some stuff: %d, chunksRead %d\n", ((bytesToRead * 8) / bits), chunksRead);
+                {
+                    break;
+                }
+                unpack_blob(w, h, bytesToRead, bits, &chunksRead, readBuffer, pixBufStart, &pixBufInsert, pixBufEnd);
             }
 
-            if (chunksRead > chunksPerLine * levels)
+            if (chunksRead > (levels * chunksPerLine))
             {
-                // float *resPtr = pixBufInsert - ((bytesToRead * 8) / bits);
-                // if (resPtr < pixBufStart)
-                // {
-                //     resPtr = pixBufEnd - (pixBufStart - resPtr);
-                // }
-                // fprintf(stderr, "resPtr %d, start %d\n", resPtr, pixBufStart);
+                if (processStreamChunk(w, h, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
+                {
+                    pack_chunk(bytesToRead, bits, bitMask, resultBuffer, finalResult);
+                    if (!write_chunk(STDOUT_FILENO, bytesToRead, resultBuffer))
+                        break;
+                }
+            }
 
-                // fprintf(stderr, "%lf %lf %lf %lf\n", resPtr[0], resPtr[1], resPtr[2], resPtr[3]);
-                // // fprintf(stderr, "%d %d %d %d\n", pixBufInsert, resPtr, pixBufInsert - resPtr, (bytesToRead * 8) / bits);
-
-                // processStream(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, chunksRead, pixBufStart, &pixBufCalculate, pixBufEnd, processedResults);
-
-                pack_chunk(bytesToRead, bits, bitMask, resultBuffer, processedResults);
-
-                // fprintf(stderr, "%x %x\n", readBuffer[0], resultBuffer[0]);
-
-                // sleep(5);
-
-                // fprintf(stderr, "%lf\n", pixBufInsert[-1]);
-
-                if (!write_chunk(STDOUT_FILENO, bytesToRead, resultBuffer))
-                    break;
+            if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
+            {
+                fprintf(stderr, "Here\n");
+                chunksRead = 0;
+                pixBufInsert = pixBufStart;
+                pixBufCalculate = pixBufStart;
+                originalChunksProcessed = 0;
+                irInsert = irStart;
+                irCalculate = irStart;
             }
         }
-
-        // fprintf(stderr, "%ld %ld\n", pixBufStart, pixBufEnd);
-
-        //  uint64_t cbRaw=uint64_t(w)*h*bits/8;
-        //  std::vector<uint64_t> raw(cbRaw/8);
-
-        //  std::vector<uint32_t> pixels(w*h);
-        //  s1 = stamp();
-        //  while(1)
-        //  {
-        //      //s3 = stamp();
-        //      if(!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
-        //          break;  // No more images
-        //      //s4 = stamp();
-        //      unpack_blob(w, h, bits, &raw[0], &pixels[0]);
-        //      //s5 = stamp();
-        //      process(levels, w, h, bits, pixels);
-        //      //invert(levels, w, h, bits, pixels);
-        //      //s6 = stamp();
-        //      pack_blob(w, h, bits, &pixels[0], &raw[0]);
-        //      //s7 = stamp();
-        //      write_blob(STDOUT_FILENO, cbRaw, &raw[0]);
-        //  }
-        //  s2 = stamp();
-        //  // fprintf(stderr,"Overall time %g s\n", (s2 - s1) / 1e9);
-        //  // fprintf(stderr,"Read Blob %g s\n", (s4 - s3) / 1e9);
-        //  // fprintf(stderr,"unpack_blob %g s\n", (s5 - s4) / 1e9);
-        //  // fprintf(stderr, "process %g s\n", (s6 - s5) / 1e9);
-        //  // fprintf(stderr,"pack_blob %g s\n", (s7 - s6) / 1e9);
-        //  // fprintf(stderr,"write_blob %g s\n", (s2 - s7) / 1e9);
-        //  return 0;
+        // fprintf(stderr, "Here to free\n");
+        // free (pixBufStart);
+        // fprintf(stderr, "Here to free 1\n");
+        // free (irStart);
+        // fprintf(stderr, "Here to free 2\n");
+        // free (finalResult);
+        fprintf(stderr, "Here to free 3\n");
+        free (readBuffer);
+        fprintf(stderr, "Here to free 4\n");
+        free(resultBuffer);
     }
+
     catch (std::exception &e)
     {
         std::cerr << "Caught exception : " << e.what() << "\n";

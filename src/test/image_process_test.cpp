@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
             }
             else if (i < j && i != 0 && j == levels)
             {
-            	for (int k = 1; k < 2*(levels - i); k += 2)
+                for (int k = 1; k < 2 * (levels - i); k += 2)
                 {
                     squareCount++;
                     printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
@@ -132,72 +132,155 @@ int main(int argc, char *argv[])
 
     //TEST VALID PIXEL
     assert(!validPixel(w, h, 0, 0, -1, -1));
-    assert(!validPixel(w,h,w,h,0,0));
-    assert(!validPixel(w,h,w/2,h-1,5,2));
+    assert(!validPixel(w, h, w, h, 0, 0));
+    assert(!validPixel(w, h, w / 2, h - 1, 5, 2));
 
-   	assert(validPixel(w,h,w/2,h/2,(w/2) - 1,(h/2) -1));
+    assert(validPixel(w, h, w / 2, h / 2, (w / 2) - 1, (h / 2) - 1));
 
-   	//Test validPixel and getPixel
+    //Test validPixel and getPixel
 
-   	testStreamBuffer[0] = 50;
-   	testStreamBuffer[0 + w] = 100;
+    testStreamBuffer[0] = 50;
+    testStreamBuffer[0 + w] = 100;
 
-   	unsigned x, y;
+    unsigned x, y;
 
-   	calculateChunkXY(w, h, &x, &y, 128, chunksPerLine, pixPerChunk);
+    calculateChunkXY(w, h, &x, &y, 128, chunksPerLine, pixPerChunk);
 
-   	assert(x == 0);
-   	assert(y == 1);
+    assert(x == 0);
+    assert(y == 1);
 
-   	assert(validPixel(w,h,x,y,0,-1));
-   	assert(getPixel(w, h, x, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1027]) == 50);
+    assert(validPixel(w, h, x, y, 0, -1));
+    assert(getPixel(w, h, x, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1027]) == 50);
+
+    testStreamBuffer[0] = 5;
+    testStreamBuffer[1027] = 1;
+    assert(getPixel(w,h,0,0,1,0,&testStreamBuffer[0], &testStreamBuffer[1027], &testStreamBuffer[1027]) == 5);
 
 
-   	// ERODE TEST TOP LEFT CORNER
-   	// 5 1 5 3 7....
-   	// 1 2 3 4....
+    // ERODE TEST TOP LEFT CORNER
+    // 5 1 5 3 7....
+    // 1 2 3 4....
 
-   	// Should give
-   	// 1 1 1 3 in results Buffer
+    // Should give
+    // 1 1 1 3 in results Buffer
 
-   	levels = 1;
-   	uint64_t chunksProcessed = 0; //Process top left corner
-   	uint64_t chunksRead = 128; // We've read full width + 1 chunk
-   	float *pixCalculate = &testStreamBuffer[0];
+    levels = 1;
+    uint64_t chunksProcessed = 0; //Process top left corner
+    uint64_t chunksRead = 128; // We've read full width + 1 chunk
+    float *pixCalculate = &testStreamBuffer[0];
 
-   	float *processedResultsBuffer = (float *)malloc(sizeof(float) * pixPerChunk);
+    float *processedResultsBuffer = (float *)malloc(sizeof(float) * pixPerChunk);
 
-   	testStreamBuffer[0] = 5;
-   	testStreamBuffer[1] = 1;
-   	testStreamBuffer[2] = 5;
-   	testStreamBuffer[3] = 3;
-   	testStreamBuffer[4] = 7;
-   	testStreamBuffer[w] = 1;
-   	testStreamBuffer[w+1] = 2;
-   	testStreamBuffer[w +2] = 3;
-   	testStreamBuffer[w+3] = 4;
+    testStreamBuffer[0] = 5;
+    testStreamBuffer[1] = 1;
+    testStreamBuffer[2] = 5;
+    testStreamBuffer[3] = 3;
+    testStreamBuffer[4] = 7;
+    testStreamBuffer[w] = 1;
+    testStreamBuffer[w + 1] = 2;
+    testStreamBuffer[w + 2] = 3;
+    testStreamBuffer[w + 3] = 4;
 
-   	calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
-   	assert(x == 0);
-   	assert(y == 0);
+    calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
+    assert(x == 0);
+    assert(y == 0);
 
-   	//Test correct Pixels are fetched
-   	assert(getPixel(w,h,0,0,0,1,&testStreamBuffer[0],&testStreamBuffer[0],&testStreamBuffer[1027]) == 1);
-   	assert(getPixel(w,h,1,0,0,1,&testStreamBuffer[0],&testStreamBuffer[1],&testStreamBuffer[1027]) == 2);
-   	assert(getPixel(w,h,2,0,0,1,&testStreamBuffer[0],&testStreamBuffer[2],&testStreamBuffer[1027]) == 3);
-   	assert(getPixel(w,h,3,0,0,1,&testStreamBuffer[0],&testStreamBuffer[3],&testStreamBuffer[1027]) == 4);
+    //Test correct Pixels are fetched
+    assert(getPixel(w, h, 0, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[0], &testStreamBuffer[1027]) == 1);
+    assert(getPixel(w, h, 1, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[1], &testStreamBuffer[1027]) == 2);
+    assert(getPixel(w, h, 2, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[2], &testStreamBuffer[1027]) == 3);
+    assert(getPixel(w, h, 3, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[3], &testStreamBuffer[1027]) == 4);
 
-   	//Test the erode!
+    //Test the erode!
+    erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], pixCalculate, &testStreamBuffer[1027], processedResultsBuffer);
 
-   	// erode(unsigned int, unsigned int, int, unsigned int, unsigned int, unsigned long*, unsigned long, float*, float**, float*, float*, bool)
-   	erode(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, chunksRead, &testStreamBuffer[0], pixCalculate, &testStreamBuffer[1027], processedResultsBuffer, true);
+    assert(processedResultsBuffer[0] == 1);
+    assert(processedResultsBuffer[1] == 1);
+    assert(processedResultsBuffer[2] == 1);
+    assert(processedResultsBuffer[3] == 3);
 
-   	printf("%f %f %f %f\n", processedResultsBuffer[0], processedResultsBuffer[1], processedResultsBuffer[2], processedResultsBuffer[3]);
+    assert(chunksProcessed == 1);
 
-   	assert(processedResultsBuffer[0] == 1);
-   	assert(processedResultsBuffer[1] == 1);
-   	assert(processedResultsBuffer[2] == 1);
-   	assert(processedResultsBuffer[3] == 3);
+    // DILATE TEST TOP LEFT CORNER
+    // 5 1 5 3 7....
+    // 1 2 3 4....
+
+    // Should give
+    // 5 5 5 7 in results Buffer
+
+    chunksProcessed = 0;
+
+    calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
+    assert(x == 0);
+    assert(y == 0);
+
+    assert(getPixel(w, h, 0, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[0], &testStreamBuffer[1027]) == 1);
+    assert(getPixel(w, h, 1, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[1], &testStreamBuffer[1027]) == 2);
+    assert(getPixel(w, h, 2, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[2], &testStreamBuffer[1027]) == 3);
+    assert(getPixel(w, h, 3, 0, 0, 1, &testStreamBuffer[0], &testStreamBuffer[3], &testStreamBuffer[1027]) == 4);
+
+    dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], pixCalculate, &testStreamBuffer[1027], processedResultsBuffer);
+
+    assert(processedResultsBuffer[0] == 5);
+    assert(processedResultsBuffer[1] == 5);
+    assert(processedResultsBuffer[2] == 5);
+    assert(processedResultsBuffer[3] == 7);
+
+    assert(chunksProcessed == 1);
+
+    //ERODE CENTER LEFT TEST
+    // 7 3 7 3
+    // 2 8 9 10 9
+    // 5 6 7 8
+
+    // Should give
+    // 2 2 7 3
+
+    testStreamBuffer[0] = 7;
+    testStreamBuffer[1] = 3;
+    testStreamBuffer[2] = 7;
+    testStreamBuffer[3] = 3;
+    testStreamBuffer[w] = 2;
+    testStreamBuffer[w + 1] = 8;
+    testStreamBuffer[w + 2] = 9;
+    testStreamBuffer[w + 3] = 10;
+    testStreamBuffer[w + 4] = 9;
+    testStreamBuffer[2*w] = 5;
+    testStreamBuffer[2*w + 1] = 6;
+    testStreamBuffer[2*w + 2] = 7;
+    testStreamBuffer[2*w + 3] = 8;
+
+    chunksProcessed = 128;
+
+    calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
+    assert(x == 0);
+    assert(y == 1);
+
+    assert(testStreamBuffer[515] == 10);
+
+    //Above
+    assert(getPixel(w, h, x, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1027]) == 7);
+    assert(getPixel(w, h, x+1, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[513], &testStreamBuffer[1027]) == 3);
+    assert(getPixel(w, h, x+2, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[514], &testStreamBuffer[1027]) == 7);
+    assert(getPixel(w, h, x+3, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[515], &testStreamBuffer[1027]) == 3);
+
+    //Below
+    assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1027]) == 5);
+    assert(getPixel(w, h, x+1, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[513], &testStreamBuffer[1027]) == 6);
+    assert(getPixel(w, h, x+2, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[514], &testStreamBuffer[1027]) == 7);
+    assert(getPixel(w, h, x+3, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[515], &testStreamBuffer[1027]) == 8);
+
+    assert(testStreamBuffer[512] == 2);
+
+    erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1027], processedResultsBuffer);
+
+    assert(processedResultsBuffer[0] == 2);
+    assert(processedResultsBuffer[1] == 2);
+    assert(processedResultsBuffer[2] == 7);
+    assert(processedResultsBuffer[3] == 3);
+
+    assert(chunksProcessed == 129);
+
 
     printf("All Tests Run Successfully\n");
 
