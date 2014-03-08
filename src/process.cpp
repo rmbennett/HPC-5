@@ -14,6 +14,8 @@
 #include "file_utils.hpp"
 #include "image_process.hpp"
 
+#define CHUNKSIZE 64
+
 //Timing function - from Advanced Computer Architecture - Coursework 2 - Prof. Kelly
 long stamp()
 {
@@ -70,52 +72,13 @@ int main(int argc, char *argv[])
 
         fprintf(stderr, "Processing %d x %d image with %d bits per pixel.\n", w, h, bits);
 
-        uint32_t bytesToRead = 0;
-        uint32_t bitMask = 0;
-        uint32_t pixPerChunk = 0;
-
-        switch (bits)
-        {
-        case 1:
-            bytesToRead = 1;
-            bitMask = 0x01;
-            pixPerChunk = 8;
-            break;
-        case 2:
-            bytesToRead = 1;
-            bitMask = 0x03;
-            pixPerChunk = 4;
-            break;
-        case 4:
-            bytesToRead = 2;
-            bitMask = 0x0F;
-            pixPerChunk = 4;
-            break;
-        case 8:
-            bytesToRead = 4;
-            bitMask = 0xFF;
-            pixPerChunk = 4;
-            break;
-        case 16:
-            bytesToRead = 8;
-            bitMask = 0xFFFF;
-            pixPerChunk = 4;
-            break;
-        case 32:
-            bytesToRead = 16;
-            bitMask = 0xFFFFFFFF;
-            pixPerChunk = 4;
-            break;
-        }
-
-        fprintf(stderr, "%d\n", bytesToRead);
+        uint64_t bytesToRead = sizeof(uint64_t);
+        uint32_t pixPerChunk = CHUNKSIZE / bits;
 
         uint32_t chunksPerLine = w / pixPerChunk;
-        uint32_t totalChunks = w * h / pixPerChunk;
+        uint32_t totalChunks = (w * h) / pixPerChunk;
 
         uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
-
-        fprintf(stderr, "%d\n", pixBufSize);
 
         float *pixBufStart = (float *)malloc(pixBufSize);
         float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
@@ -130,8 +93,8 @@ int main(int argc, char *argv[])
 
         float *finalResult = (float *)malloc(sizeof(float) * pixPerChunk);
 
-        uint32_t *readBuffer = (uint32_t *)malloc(sizeof(uint32_t) * bytesToRead);
-        uint32_t *resultBuffer = (uint32_t *)malloc(sizeof(uint32_t) * bytesToRead);
+        uint64_t readChunk;
+        uint64_t resultChunk;
 
         uint64_t chunksRead = 0;
         uint64_t originalChunksProcessed = 0;
@@ -142,39 +105,19 @@ int main(int argc, char *argv[])
 
             if (chunksRead < (totalChunks))
             {
-                if (!read_chunk(STDIN_FILENO, bytesToRead, readBuffer))
+                if (!read_blob(STDIN_FILENO, bytesToRead, &readChunk))
                 {
                     break;
                 }
-                fprintf(stderr, "%x\n", readBuffer[0]);
-                // if(!(chunksRead%chunksPerLine)){
-                // 	fprintf(stderr, "Chunks Read %d memStart %d insert %d\n", chunksRead, pixBufStart, pixBufInsert);
-                // 	sleep(3);
-                // }
-                unpack_blob(w, h, bytesToRead, bits, &chunksRead, readBuffer, pixBufStart, &pixBufInsert, pixBufEnd);
-                // fprintf(stderr, "%f %f %f %f\n", pixBufInsert[-4], pixBufInsert[-3], pixBufInsert[-2], pixBufInsert[-1]);
-                // sleep(3);
-                // if(!(chunksRead%chunksPerLine)){ //surely this gives a remainder and ! inverts true/false
-                // 	for (int i = (pixPerChunk * chunksPerLine); i > 0; i--)
-                // 	{
-                // 		fprintf(stderr, "Printing Values\n");
-                // 		float *readFrom = pixBufInsert - i; // should this be -i (surely at the start pixbufinsert = pixbufstart so it's reading from the wrong place)
-                // 		if (readFrom < pixBufStart){
-                // 			readFrom = pixBufEnd - ((pixBufStart - readFrom)/sizeof(float));
-                // 		}
-                // 		fprintf(stderr, "Line %d %d %f\n", (chunksRead/chunksPerLine) -1, (pixPerChunk * chunksPerLine) - i, *(readFrom));
-                // 	}
-                //     sleep(3);
-                // }
+                unpack_blob(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
             }
 
             if (chunksRead > (levels * chunksPerLine))
             {
                 if (processStreamChunk(w, h, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
                 {
-                    pack_chunk(bytesToRead, bits, bitMask, resultBuffer, finalResult);
-                    if (!write_chunk(STDOUT_FILENO, bytesToRead, resultBuffer))
-                        break;
+                    pack_blob(bits, pixPerChunk, finalResult,&resultChunk);
+                    write_blob(STDOUT_FILENO, bytesToRead,&resultChunk);
                 }
             }
 
@@ -192,8 +135,6 @@ int main(int argc, char *argv[])
         free (pixBufStart);
         free (irStart);
         free (finalResult);
-        free (readBuffer);
-        free(resultBuffer);
     }
 
     catch (std::exception &e)

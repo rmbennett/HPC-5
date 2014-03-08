@@ -83,7 +83,7 @@ void erodeChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32
         //Else we have 8, must be 1 bit packed so do it twice
         else
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < pixPerChunk/4; i++)
             {
                 unsigned x;
                 unsigned y;
@@ -198,7 +198,7 @@ void erodeChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32
         }
         else
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < pixPerChunk/4; i++)
             {
                 unsigned x;
                 unsigned y;
@@ -317,7 +317,7 @@ void dilateChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint3
         //Else we have 8, must be 1 bit packed
         else
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < pixPerChunk/4; i++)
             {
                 unsigned x;
                 unsigned y;
@@ -431,7 +431,7 @@ void dilateChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint3
         }
         else
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < pixPerChunk/4; i++)
             {
                 unsigned x;
                 unsigned y;

@@ -43,11 +43,11 @@ neighbourhood consists of just {middle,down,right}.
 Images are input and output as raw binary gray-scale
 images, with no header. The processing parameters are
 set on the command line as "width height [bits] [levels]":
-	- Width: positive integer, up to and including 2^24
-	- Height: positive integer, up to and including 2^24
-	- Bits: a binary power <=32, default=8
-	- Levels: number of times to erode before dilating (or vice-versa),
-	          default=1
+    - Width: positive integer, up to and including 2^24
+    - Height: positive integer, up to and including 2^24
+    - Bits: a binary power <=32, default=8
+    - Levels: number of times to erode before dilating (or vice-versa),
+              default=1
 
 A constraint is that mod(Width*bits,64)==0. There
 is no constraint on image size, beyond that imposed
@@ -69,18 +69,18 @@ image with packed hex representation:
 represents the image:
 
     0000000000000000000000000000000011111111111111111111111111111111
-	0000000000000000111100001111000000000000000000000000111100001111
-	0000000100000010000001000000100000010000001000000100000010000000
+    0000000000000000111100001111000000000000000000000000111100001111
+    0000000100000010000001000000100000010000001000000100000010000000
 
 You can use imagemagick to convert to and from binary representation.
 For example, to convert a 512x512 image input.png to 2-bit:
 
-	convert input.png -depth 2 gray:input.raw
+    convert input.png -depth 2 gray:input.raw
 
 and to convert output.raw back again:
 
-	convert -size 512x512 -depth 2 gray:output.raw output.png
-	
+    convert -size 512x512 -depth 2 gray:output.raw output.png
+
 They can also read/write on stdin/stdout for streaming. But, it is
 also easy to generate images programmatically, particularly when
 dealing with large images. You can even use /dev/zero and
@@ -190,108 +190,116 @@ you are competing with the others.
 // You may want to play with this to check you understand what is going on
 void invert(int levels, unsigned w, unsigned h, unsigned bits, std::vector<uint32_t> &pixels)
 {
-	uint32_t mask=0xFFFFFFFFul>>bits;
-	
-	for(unsigned i=0;i<w*h;i++)
-	{
-		pixels[i]=mask-pixels[i];
-	}
+    uint32_t mask = 0xFFFFFFFFul >> bits;
+
+    for (unsigned i = 0; i < w * h; i++)
+    {
+        pixels[i] = mask - pixels[i];
+    }
 }
 
-//Timing function - from Advanced Computer Architecture - Coursework 2 - Prof. Kelly 
+//Timing function - from Advanced Computer Architecture - Coursework 2 - Prof. Kelly
 long stamp()
 {
-  struct timespec tv;
-  long _stamp;
-  clock_gettime(CLOCK_MONOTONIC, &tv);
-  _stamp = tv.tv_sec * 1000 * 1000 * 1000 + tv.tv_nsec;
-  return _stamp;
+    struct timespec tv;
+    long _stamp;
+    clock_gettime(CLOCK_MONOTONIC, &tv);
+    _stamp = tv.tv_sec * 1000 * 1000 * 1000 + tv.tv_nsec;
+    return _stamp;
 }
 
 int main(int argc, char *argv[])
 {
-	long s1, s2, s3, s4, s5, s6, s7;
-	try
-	{
-		if(argc<3)
-		{
-			fprintf(stderr, "Usage: process width height [bits] [levels]\n");
-			fprintf(stderr, "   bits=8 by default\n");
-			fprintf(stderr, "   levels=1 by default\n");
-			exit(1);
-		}
-		
-		unsigned w=atoi(argv[1]);
-		unsigned h=atoi(argv[2]);
-		
-		unsigned bits=8;
-		if(argc>3)
-		{
-			bits=atoi(argv[3]);
-		}
-		
-		if(bits>32)
-			throw std::invalid_argument("Bits must be <= 32.");
-		
-		unsigned tmp=bits;
-		while(tmp!=1)
-		{
-			tmp>>=1;
-			if(tmp==0)
-				throw std::invalid_argument("Bits must be a binary power.");
-		}
-		
-		if( ((w*bits)%64) != 0){
-			throw std::invalid_argument(" width*bits must be divisible by 64.");
-		}
-		
-		int levels=1;
-		if(argc>4){
-			levels=atoi(argv[4]);
-		}
-		
-		fprintf(stderr, "Processing %d x %d image with %d bits per pixel.\n", w, h, bits);
-		
-		uint64_t cbRaw=uint64_t(w)*h*bits/8;
-		std::vector<uint64_t> raw(cbRaw/8);
-		
-		std::vector<uint32_t> pixels(w*h);
-		s1 = stamp();
-		while(1)
-		{
-			//s3 = stamp();
-			if(!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
-				break;	// No more images
-			//s4 = stamp();
-			unpack_blob(w, h, bits, &raw[0], &pixels[0]);
-			for (int line = 0; line < 512; line++)
-			{
-				for (int i = 0; i < 512; i++)
-				{
-					fprintf(stderr, "Line %d %d %d\n", line, i, pixels[i]);
-					sleep(1);
-				}
-			}
-			//s5 = stamp();
-			process(levels, w, h, bits, pixels);
-			//invert(levels, w, h, bits, pixels);
-			//s6 = stamp();
-			pack_blob(w, h, bits, &pixels[0], &raw[0]);
-			//s7 = stamp();
-			write_blob(STDOUT_FILENO, cbRaw, &raw[0]);			
-		}
-		s2 = stamp();
-     	fprintf(stderr,"Overall time %g s\n", (s2 - s1) / 1e9);
-		// fprintf(stderr,"Read Blob %g s\n", (s4 - s3) / 1e9);
-		// fprintf(stderr,"unpack_blob %g s\n", (s5 - s4) / 1e9);
-		// fprintf(stderr, "process %g s\n", (s6 - s5) / 1e9);
-		// fprintf(stderr,"pack_blob %g s\n", (s7 - s6) / 1e9);
-		// fprintf(stderr,"write_blob %g s\n", (s2 - s7) / 1e9);
-		return 0;
-	}catch(std::exception &e)
-	{
-		std::cerr<<"Caught exception : "<<e.what()<<"\n";
-		return 1;
-	}
+    long s1, s2, s3, s4, s5, s6, s7;
+    try
+    {
+        if (argc < 3)
+        {
+            fprintf(stderr, "Usage: process width height [bits] [levels]\n");
+            fprintf(stderr, "   bits=8 by default\n");
+            fprintf(stderr, "   levels=1 by default\n");
+            exit(1);
+        }
+
+        unsigned w = atoi(argv[1]);
+        unsigned h = atoi(argv[2]);
+
+        unsigned bits = 8;
+        if (argc > 3)
+        {
+            bits = atoi(argv[3]);
+        }
+
+        if (bits > 32)
+            throw std::invalid_argument("Bits must be <= 32.");
+
+        unsigned tmp = bits;
+        while (tmp != 1)
+        {
+            tmp >>= 1;
+            if (tmp == 0)
+                throw std::invalid_argument("Bits must be a binary power.");
+        }
+
+        if ( ((w * bits) % 64) != 0)
+        {
+            throw std::invalid_argument(" width*bits must be divisible by 64.");
+        }
+
+        int levels = 1;
+        if (argc > 4)
+        {
+            levels = atoi(argv[4]);
+        }
+
+        fprintf(stderr, "Processing %d x %d image with %d bits per pixel.\n", w, h, bits);
+
+        uint64_t cbRaw = uint64_t(w) * h * bits / 8;
+        std::vector<uint64_t> raw(cbRaw / 8);
+
+        std::vector<uint32_t> pixels(w * h);
+        s1 = stamp();
+        while (1)
+        {
+            //s3 = stamp();
+            if (!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
+                break;  // No more images
+
+            for (int i = 0; i < cbRaw / 8; i++)
+            {
+                fprintf(stderr, "%x\n", raw[i]);
+            }
+            //s4 = stamp();
+            unpack_blob(w, h, bits, &raw[0], &pixels[0]);
+            // for (int line = 0; line < 512; line++)
+            // {
+            //     for (int i = 0; i < 512; i++)
+            //     {
+            //         fprintf(stderr, "Line %d %d %d\n", line, i, pixels[i]);
+            //     }
+            //     sleep(3);
+            // }
+            //s5 = stamp();
+            process(levels, w, h, bits, pixels);
+            //invert(levels, w, h, bits, pixels);
+            //s6 = stamp();
+            pack_blob(w, h, bits, &pixels[0], &raw[0]);
+            //s7 = stamp();
+            write_blob(STDOUT_FILENO, cbRaw, &raw[0]);
+        }
+        s2 = stamp();
+        fprintf(stderr, "Overall time %g s\n", (s2 - s1) / 1e9);
+        // fprintf(stderr,"Read Blob %g s\n", (s4 - s3) / 1e9);
+        // fprintf(stderr,"unpack_blob %g s\n", (s5 - s4) / 1e9);
+        // fprintf(stderr, "process %g s\n", (s6 - s5) / 1e9);
+        // fprintf(stderr,"pack_blob %g s\n", (s7 - s6) / 1e9);
+        // fprintf(stderr,"write_blob %g s\n", (s2 - s7) / 1e9);
+        return 0;
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "Caught exception : " << e.what() << "\n";
+        return 1;
+    }
 }
 
