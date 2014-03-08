@@ -113,17 +113,17 @@ int main(int argc, char *argv[])
         uint32_t chunksPerLine = w / pixPerChunk;
         uint32_t totalChunks = w * h / pixPerChunk;
 
-        uint32_t pixBufSize = sizeof(float) * ((w * (2 * levels)) + pixPerChunk);
+        uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
 
         fprintf(stderr, "%d\n", pixBufSize);
 
         float *pixBufStart = (float *)malloc(pixBufSize);
-        float *pixBufEnd = pixBufStart + pixBufSize / sizeof(float);
+        float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
         float *pixBufInsert = pixBufStart;
         float *pixBufCalculate = pixBufStart;
 
         float *irStart = (float *)malloc(pixBufSize);
-        float *irEnd = irStart + pixBufSize / sizeof(float);
+        float *irEnd = irStart + (pixBufSize / sizeof(float));
         float *irInsert = irStart;
         float *irCalculate = irStart;
 
@@ -146,7 +146,26 @@ int main(int argc, char *argv[])
                 {
                     break;
                 }
+                fprintf(stderr, "%x\n", readBuffer[0]);
+                // if(!(chunksRead%chunksPerLine)){
+                // 	fprintf(stderr, "Chunks Read %d memStart %d insert %d\n", chunksRead, pixBufStart, pixBufInsert);
+                // 	sleep(3);
+                // }
                 unpack_blob(w, h, bytesToRead, bits, &chunksRead, readBuffer, pixBufStart, &pixBufInsert, pixBufEnd);
+                // fprintf(stderr, "%f %f %f %f\n", pixBufInsert[-4], pixBufInsert[-3], pixBufInsert[-2], pixBufInsert[-1]);
+                // sleep(3);
+                // if(!(chunksRead%chunksPerLine)){ //surely this gives a remainder and ! inverts true/false
+                // 	for (int i = (pixPerChunk * chunksPerLine); i > 0; i--)
+                // 	{
+                // 		fprintf(stderr, "Printing Values\n");
+                // 		float *readFrom = pixBufInsert - i; // should this be -i (surely at the start pixbufinsert = pixbufstart so it's reading from the wrong place)
+                // 		if (readFrom < pixBufStart){
+                // 			readFrom = pixBufEnd - ((pixBufStart - readFrom)/sizeof(float));
+                // 		}
+                // 		fprintf(stderr, "Line %d %d %f\n", (chunksRead/chunksPerLine) -1, (pixPerChunk * chunksPerLine) - i, *(readFrom));
+                // 	}
+                //     sleep(3);
+                // }
             }
 
             if (chunksRead > (levels * chunksPerLine))
@@ -161,7 +180,6 @@ int main(int argc, char *argv[])
 
             if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
             {
-                fprintf(stderr, "Here\n");
                 chunksRead = 0;
                 pixBufInsert = pixBufStart;
                 pixBufCalculate = pixBufStart;
@@ -170,15 +188,11 @@ int main(int argc, char *argv[])
                 irCalculate = irStart;
             }
         }
-        // fprintf(stderr, "Here to free\n");
-        // free (pixBufStart);
-        // fprintf(stderr, "Here to free 1\n");
-        // free (irStart);
-        // fprintf(stderr, "Here to free 2\n");
-        // free (finalResult);
-        fprintf(stderr, "Here to free 3\n");
+
+        free (pixBufStart);
+        free (irStart);
+        free (finalResult);
         free (readBuffer);
-        fprintf(stderr, "Here to free 4\n");
         free(resultBuffer);
     }
 

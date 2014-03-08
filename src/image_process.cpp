@@ -521,11 +521,11 @@ float getPixel(unsigned w, unsigned h, unsigned x, unsigned y, int dx, int dy, f
 
     if (result < memStart)
     {
-        result = memEnd - (memStart - result);
+        result = result + ((memEnd - memStart));
     }
-    else if (result > memEnd)
+    else if (result >= memEnd)
     {
-        result = memStart + (result - memEnd - 1);
+        result = memStart + ((result - memEnd));
     }
 
     return *result;
@@ -551,29 +551,31 @@ void calculateChunkXY(unsigned w, unsigned h, unsigned *x, unsigned *y, uint64_t
 bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint32_t totalChunks, uint64_t *originalImgChunksProcessed, float *pixBufStart, float **pixCalculate, float *pixBufEnd, uint64_t *irChunksProcessed, float *irStart, float **irInsert, float **irCalculate, float *irEnd, float *finalResult)
 {
 
-	fprintf(stderr, "original %d irChunks %d totalChunks %d\n", *originalImgChunksProcessed, *irChunksProcessed, totalChunks);
+	// fprintf(stderr, "original %d irChunks %d totalChunks %d\n", *originalImgChunksProcessed, *irChunksProcessed, totalChunks);
     if (levels > 0)
     {
         if (*originalImgChunksProcessed < (totalChunks))
         {
             dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, originalImgChunksProcessed, pixBufStart, *pixCalculate, pixBufEnd, *irInsert);
+           	// fprintf(stderr, "After Dilate %f %f %f %f\n", irInsert[0], irInsert[1], irInsert[2], irInsert[3]);
             *pixCalculate += pixPerChunk;
-            if (*pixCalculate > pixBufEnd)
+            if (*pixCalculate >= pixBufEnd)
             {
-                *pixCalculate = pixBufStart;
+                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd)/sizeof(float));
             }
             *(irInsert) += pixPerChunk;
-            if (*irInsert > irEnd)
+            if (*irInsert >= irEnd)
             {
-                *irInsert = irStart;
+                *irInsert = irStart + ((*irInsert - irEnd)/sizeof(float));
             }
         }
         if (*originalImgChunksProcessed > (levels * chunksPerLine) && *irChunksProcessed < (totalChunks))
         {
             erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, irChunksProcessed, irStart, *irCalculate, irEnd, finalResult);
-            if (*irCalculate > irEnd)
+            // fprintf(stderr, "After Erode %f %f %f %f\n", finalResult[0], finalResult[1], finalResult[2], finalResult[3]);
+            if (*irCalculate >= irEnd)
             {
-                *irCalculate = irStart;
+                *irCalculate = irStart + ((*irCalculate - irEnd)/sizeof(float));
             }
             return true;
         }
@@ -586,21 +588,21 @@ bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk
             erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, originalImgChunksProcessed, pixBufStart, *pixCalculate, pixBufEnd, *irInsert);
             if (*pixCalculate >= pixBufEnd)
             {
-                *pixCalculate = pixBufStart + (*(pixCalculate) - pixBufEnd);
+                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd)/sizeof(float));
             }
             *irInsert += pixPerChunk;
-            if (*irInsert > irEnd)
+            if (*irInsert >= irEnd)
             {
-                *irInsert = irStart;
+                *irInsert = irStart + ((*irInsert - irEnd)/sizeof(float));
             }
         }
         if (*originalImgChunksProcessed > (levels * chunksPerLine))
         {
             dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, irChunksProcessed, irStart, *irCalculate, irEnd, finalResult);
             *irCalculate += pixPerChunk;
-            if (*irCalculate > irEnd)
+            if (*irCalculate >= irEnd)
             {
-                *irCalculate = irStart;
+                *irCalculate = irStart + ((*irCalculate - irEnd)/sizeof(float));
             }
             return true;
         }

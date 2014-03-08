@@ -70,6 +70,7 @@ void pack_blob(unsigned w, unsigned h, unsigned bits, const uint32_t *pUnpacked,
 	const uint64_t MASK=0xFFFFFFFFFFFFFFFFULL>>(64-bits);
 	
 	for(unsigned i=0;i<w*h;i++){
+
 		buffer=buffer | (uint64_t(pUnpacked[i]&MASK)<< bufferedBits);
 		bufferedBits+=bits;
 		

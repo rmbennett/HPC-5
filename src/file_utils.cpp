@@ -62,35 +62,24 @@ void unpack_blob(unsigned w, unsigned h, uint32_t bytesToRead, unsigned bits, ui
 			buffer=shuffle32(bits, *readBuffer++);
 			bufferedBits=32;
 		}
-		
-		**pixBufInsertPtr=buffer&MASK;
+
+		**pixBufInsertPtr=(float)(buffer&MASK);
+		fprintf(stderr, "unpacked %f\n", **pixBufInsertPtr);
+		sleep(1);
 		(*pixBufInsertPtr)++;
-		if (*pixBufInsertPtr > pixBufEnd)
+		if ((*pixBufInsertPtr) >= pixBufEnd)
 		{
-			*pixBufInsertPtr = pixBufStart;
+			// fprintf(stderr, "Wrapping from %d\n", *pixBufInsertPtr);
+			*pixBufInsertPtr = pixBufStart + ((*pixBufInsertPtr - pixBufEnd)/sizeof(float));
+			// fprintf(stderr, "To %d, chunksRead %d, memstart %d memend %d\n", *pixBufInsertPtr, *chunksRead, pixBufStart, pixBufEnd);
 		}
 		buffer=buffer>>bits;
 		bufferedBits-=bits;
 	}
 	
-	// assert(bufferedBits==0);
 	(*chunksRead)++;
 
 }
-
-// void unpack_chunk(uint32_t bytesToRead, unsigned bits, uint64_t *chunksRead, unsigned mask, uint32_t *readBuffer, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd)
-// {
-//     for (int i = 0; i < (bytesToRead * 8) / bits; i++)
-//     {
-//         **pixBufInsertPtr = (float)(readBuffer[(i * bits) / (8 * sizeof(uint32_t))] >> (i * bits) & mask);
-//         (*pixBufInsertPtr)++;
-//         if (*pixBufInsertPtr > pixBufEnd)
-//         {
-//             *pixBufInsertPtr = pixBufStart;
-//         }
-//     }
-//     (*chunksRead)++;
-// }
 
 
 void pack_chunk(uint32_t bytesRead, unsigned bits, unsigned mask, uint32_t *resultBuffer, float *resultsToPack)

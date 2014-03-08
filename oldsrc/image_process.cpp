@@ -121,15 +121,20 @@ void process(int levels, unsigned w, unsigned h, unsigned /*bits*/, std::vector<
 	// we flip the order round.
 	auto fwd=levels < 0 ? erode : dilate;
 	auto rev=levels < 0 ? dilate : erode;
-	
+
+	fprintf(stderr, "Before: %d %d %d %d\n", pixels[0], pixels[1], pixels[2], pixels[3]);
+
 	for(int i=0;i<std::abs(levels);i++)
 	{
 		fwd(w, h, pixels, buffer);
 		std::swap(pixels, buffer);
 	}
+	fprintf(stderr, "After Dilate: %d %d %d %d\n", pixels[0], pixels[1], pixels[2], pixels[3]);
+
 	for(int i=0;i<std::abs(levels);i++)
 	{
 		rev(w,h,pixels, buffer);
 		std::swap(pixels, buffer);
 	}
+	fprintf(stderr, "After Erode: %d %d %d %d\n", pixels[0], pixels[1], pixels[2], pixels[3]);
 }
