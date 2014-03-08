@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
 
         uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
 
+        fprintf(stderr, "%d\n", pixBufSize/sizeof(float));
+
         float *pixBufStart = (float *)malloc(pixBufSize);
         float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
         float *pixBufInsert = pixBufStart;
@@ -110,6 +112,8 @@ int main(int argc, char *argv[])
                     break;
                 }
                 unpack_blob(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
+                // if (!(chunksRead %3*chunksPerLine))
+                //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
             }
 
             if (chunksRead > (levels * chunksPerLine))

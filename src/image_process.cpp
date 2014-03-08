@@ -35,11 +35,13 @@ void erodeChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32
     //Cross Shape
     if (levels == 1)
     {
-        if (pixPerChunk == 4)
+        for (int i = 0; i < pixPerChunk / 4; i++)
         {
             unsigned x;
             unsigned y;
             calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+            x += 4 * i;
 
             float *pix0 = pixCalculate;
             float *pix1 = pixCalculate + 1;
@@ -73,79 +75,30 @@ void erodeChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32
             originalPix = _mm_min_ps(originalPix, comparisonPix);
 
             //Store the result
+
             float temp[4];
             _mm_storer_ps(&temp[0], originalPix);
             std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
 
-            (*chunksProcessed)++;
-            return;
-        }
-        //Else we have 8, must be 1 bit packed so do it twice
-        else
-        {
-            for (int i = 0; i < pixPerChunk/4; i++)
-            {
-                unsigned x;
-                unsigned y;
-                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
-
-                x += 4 * i;
-
-                float *pix0 = pixCalculate;
-                float *pix1 = pixCalculate + 1;
-                float *pix2 = pixCalculate + 2;
-                float *pix3 = pixCalculate + 3;
-
-                __m128 originalPix;
-
-                originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
-
-                __m128 comparisonPix;
-
-                //Above
-                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 0, -1, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 0, -1, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 0, -1, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 0, -1, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_min_ps(originalPix, comparisonPix);
-
-                //Below
-                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 0, 1, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 0, 1, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 0, 1, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 0, 1, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_min_ps(originalPix, comparisonPix);
-
-                //Left
-                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, -1, 0, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, -1, 0, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, -1, 0, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, -1, 0, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_min_ps(originalPix, comparisonPix);
-
-                //Right
-                comparisonPix = _mm_set_ps(MAXPIX(w, h, x, y, 1, 0, pixBufStart, pix0, pixBufEnd), MAXPIX(w, h, x + 1, y, 1, 0, pixBufStart, pix1, pixBufEnd), MAXPIX(w, h, x + 2, y, 1, 0, pixBufStart, pix2, pixBufEnd), MAXPIX(w, h, x + 3, y, 1, 0, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_min_ps(originalPix, comparisonPix);
-
-                //Store the result
-
-                float temp[4];
-                _mm_storer_ps(&temp[0], originalPix);
-                std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
-
-                pixCalculate += 4;
-                processedResultsBuffer += 4;
-
-            }
-
-            (*chunksProcessed)++;
-            return;
+            pixCalculate += 4;
+            processedResultsBuffer += 4;
 
         }
+
+        (*chunksProcessed)++;
+        return;
+
     }
     //Diamond
     else
     {
-        if (pixPerChunk == 4)
+        for (int i = 0; i < pixPerChunk / 4; i++)
         {
             unsigned x;
             unsigned y;
             calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+            x += 4 * i;
 
             float *pix0 = pixCalculate;
             float *pix1 = pixCalculate + 1;
@@ -192,75 +145,15 @@ void erodeChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32
             _mm_storer_ps(&temp[0], originalPix);
             std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
 
-            (*chunksProcessed)++;
-            return;
-
+            pixCalculate += 4;
+            processedResultsBuffer += 4;
         }
-        else
-        {
-            for (int i = 0; i < pixPerChunk/4; i++)
-            {
-                unsigned x;
-                unsigned y;
-                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
 
-                x += 4 * i;
-
-                float *pix0 = pixCalculate;
-                float *pix1 = pixCalculate + 1;
-                float *pix2 = pixCalculate + 2;
-                float *pix3 = pixCalculate + 3;
-
-                __m128 originalPix;
-
-                originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
-
-                __m128 comparisonPix;
-
-                for (int i = 0; i < levels + 1; i++)
-                {
-                    for (int j = 0; j < levels + 1; j++)
-                    {
-                        comparisonPix = _mm_set_ps(MAXPIXIJK(w, h, x, y, i, j, 0, levels, pixBufStart, pix0, pixBufEnd), MAXPIXIJK(w, h, x + 1, y, i, j, 0, levels, pixBufStart, pix1, pixBufEnd), MAXPIXIJK(w, h, x + 2, y, i, j, 0, levels, pixBufStart, pix2, pixBufEnd), MAXPIXIJK(w, h, x + 3, y, i, j, 0, levels, pixBufStart, pix3, pixBufEnd));
-
-                        originalPix = _mm_min_ps(originalPix, comparisonPix);
-
-                        if (i == 0)
-                        {
-                            for (int k = 1; k < 2 * j; k += 2)
-                            {
-                                comparisonPix = _mm_set_ps(MAXPIXIJK(w, h, x, y, i, j, k, levels, pixBufStart, pix0, pixBufEnd), MAXPIXIJK(w, h, x + 1, y, i, j, k, levels, pixBufStart, pix1, pixBufEnd), MAXPIXIJK(w, h, x + 2, y, i, j, k, levels, pixBufStart, pix2, pixBufEnd), MAXPIXIJK(w, h, x + 3, y, i, j, k, levels, pixBufStart, pix3, pixBufEnd));
-
-                                originalPix = _mm_min_ps(originalPix, comparisonPix);
-
-                            }
-                        }
-                        else if (i < j && i != 0 && j == levels)
-                        {
-                            for (int k = 1; k < 2 * (levels - i); k += 2)
-                            {
-                                comparisonPix = _mm_set_ps(MAXPIXIJK(w, h, x, y, i, j, k, levels, pixBufStart, pix0, pixBufEnd), MAXPIXIJK(w, h, x + 1, y, i, j, k, levels, pixBufStart, pix1, pixBufEnd), MAXPIXIJK(w, h, x + 2, y, i, j, k, levels, pixBufStart, pix2, pixBufEnd), MAXPIXIJK(w, h, x + 3, y, i, j, k, levels, pixBufStart, pix3, pixBufEnd));
-
-                                originalPix = _mm_min_ps(originalPix, comparisonPix);
-                            }
-                        }
-                    }
-                }
-
-                float temp[4];
-                _mm_storer_ps(&temp[0], originalPix);
-                std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
-
-                pixCalculate += 4;
-                processedResultsBuffer += 4;
-            }
-
-            (*chunksProcessed)++;
-            return;
-
-        }
+        (*chunksProcessed)++;
+        return;
 
     }
+
 }
 
 //MAX
@@ -268,11 +161,13 @@ void dilateChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint3
 {
     if (levels == 1)
     {
-        if (pixPerChunk == 4)
+        for (int i = 0; i < pixPerChunk / 4; i++)
         {
             unsigned x;
             unsigned y;
             calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+            x += 4 * i;
 
             float *pix0 = pixCalculate;
             float *pix1 = pixCalculate + 1;
@@ -310,75 +205,25 @@ void dilateChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint3
             _mm_storer_ps(&temp[0], originalPix);
             std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
 
-            (*chunksProcessed)++;
-            return;
+            pixCalculate += 4;
+            processedResultsBuffer += 4;
 
         }
-        //Else we have 8, must be 1 bit packed
-        else
-        {
-            for (int i = 0; i < pixPerChunk/4; i++)
-            {
-                unsigned x;
-                unsigned y;
-                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
 
-                x += 4 * i;
+        (*chunksProcessed)++;
+        return;
 
-                float *pix0 = pixCalculate;
-                float *pix1 = pixCalculate + 1;
-                float *pix2 = pixCalculate + 2;
-                float *pix3 = pixCalculate + 3;
-
-                __m128 originalPix;
-
-                originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
-
-                __m128 comparisonPix;
-
-                //Above
-                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 0, -1, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 0, -1, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 0, -1, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 0, -1, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_max_ps(originalPix, comparisonPix);
-
-                //Below
-                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 0, 1, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 0, 1, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 0, 1, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 0, 1, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_max_ps(originalPix, comparisonPix);
-
-                //Left
-                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, -1, 0, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, -1, 0, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, -1, 0, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, -1, 0, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_max_ps(originalPix, comparisonPix);
-
-                //Right
-                comparisonPix = _mm_set_ps(MINPIX(w, h, x, y, 1, 0, pixBufStart, pix0, pixBufEnd), MINPIX(w, h, x + 1, y, 1, 0, pixBufStart, pix1, pixBufEnd), MINPIX(w, h, x + 2, y, 1, 0, pixBufStart, pix2, pixBufEnd), MINPIX(w, h, x + 3, y, 1, 0, pixBufStart, pix3, pixBufEnd));
-
-                originalPix = _mm_max_ps(originalPix, comparisonPix);
-
-                //Store the result
-                float temp[4];
-                _mm_storer_ps(&temp[0], originalPix);
-                std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
-
-                pixCalculate += 4;
-                processedResultsBuffer += 4;
-
-            }
-
-            (*chunksProcessed)++;
-            return;
-
-        }
     }
     //Diamond
     else
     {
-        if (pixPerChunk == 4)
+        for (int i = 0; i < pixPerChunk / 4; i++)
         {
             unsigned x;
             unsigned y;
             calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
+
+            x += 4 * i;
 
             float *pix0 = pixCalculate;
             float *pix1 = pixCalculate + 1;
@@ -425,75 +270,15 @@ void dilateChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint3
             _mm_storer_ps(&temp[0], originalPix);
             std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
 
-            (*chunksProcessed)++;
-            return;
-
+            pixCalculate += 4;
+            processedResultsBuffer += 4;
         }
-        else
-        {
-            for (int i = 0; i < pixPerChunk/4; i++)
-            {
-                unsigned x;
-                unsigned y;
-                calculateChunkXY(w, h, &x, &y, *chunksProcessed, chunksPerLine, pixPerChunk);
 
-                x += 4 * i;
-
-                float *pix0 = pixCalculate;
-                float *pix1 = pixCalculate + 1;
-                float *pix2 = pixCalculate + 2;
-                float *pix3 = pixCalculate + 3;
-
-                __m128 originalPix;
-
-                originalPix = _mm_set_ps(*pix0, *pix1, *pix2, *pix3);
-
-                __m128 comparisonPix;
-
-                for (int i = 0; i < levels + 1; i++)
-                {
-                    for (int j = 0; j < levels + 1; j++)
-                    {
-                        comparisonPix = _mm_set_ps(MINPIXIJK(w, h, x, y, i, j, 0, levels, pixBufStart, pix0, pixBufEnd), MINPIXIJK(w, h, x + 1, y, i, j, 0, levels, pixBufStart, pix1, pixBufEnd), MINPIXIJK(w, h, x + 2, y, i, j, 0, levels, pixBufStart, pix2, pixBufEnd), MINPIXIJK(w, h, x + 3, y, i, j, 0, levels, pixBufStart, pix3, pixBufEnd));
-
-                        originalPix = _mm_max_ps(originalPix, comparisonPix);
-
-                        if (i == 0)
-                        {
-                            for (int k = 1; k < 2 * j; k += 2)
-                            {
-                                comparisonPix = _mm_set_ps(MINPIXIJK(w, h, x, y, i, j, k, levels, pixBufStart, pix0, pixBufEnd), MINPIXIJK(w, h, x + 1, y, i, j, k, levels, pixBufStart, pix1, pixBufEnd), MINPIXIJK(w, h, x + 2, y, i, j, k, levels, pixBufStart, pix2, pixBufEnd), MINPIXIJK(w, h, x + 3, y, i, j, k, levels, pixBufStart, pix3, pixBufEnd));
-
-                                originalPix = _mm_max_ps(originalPix, comparisonPix);
-
-                            }
-                        }
-                        else if (i < j && i != 0 && j == levels)
-                        {
-                            for (int k = 1; k < 2 * (levels - i); k += 2)
-                            {
-                                comparisonPix = _mm_set_ps(MINPIXIJK(w, h, x, y, i, j, k, levels, pixBufStart, pix0, pixBufEnd), MINPIXIJK(w, h, x + 1, y, i, j, k, levels, pixBufStart, pix1, pixBufEnd), MINPIXIJK(w, h, x + 2, y, i, j, k, levels, pixBufStart, pix2, pixBufEnd), MINPIXIJK(w, h, x + 3, y, i, j, k, levels, pixBufStart, pix3, pixBufEnd));
-
-                                originalPix = _mm_max_ps(originalPix, comparisonPix);
-                            }
-                        }
-                    }
-                }
-
-                float temp[4];
-                _mm_storer_ps(&temp[0], originalPix);
-                std::memcpy(processedResultsBuffer, &temp[0], sizeof(float) * 4);
-
-                pixCalculate += 4;
-                processedResultsBuffer += 4;
-            }
-
-            (*chunksProcessed)++;
-            return;
-
-        }
+        (*chunksProcessed)++;
+        return;
 
     }
+
 }
 
 //Check if pixel to compare is in image
@@ -551,22 +336,22 @@ void calculateChunkXY(unsigned w, unsigned h, unsigned *x, unsigned *y, uint64_t
 bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint32_t totalChunks, uint64_t *originalImgChunksProcessed, float *pixBufStart, float **pixCalculate, float *pixBufEnd, uint64_t *irChunksProcessed, float *irStart, float **irInsert, float **irCalculate, float *irEnd, float *finalResult)
 {
 
-	// fprintf(stderr, "original %d irChunks %d totalChunks %d\n", *originalImgChunksProcessed, *irChunksProcessed, totalChunks);
+    // fprintf(stderr, "original %d irChunks %d totalChunks %d\n", *originalImgChunksProcessed, *irChunksProcessed, totalChunks);
     if (levels > 0)
     {
         if (*originalImgChunksProcessed < (totalChunks))
         {
             dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, originalImgChunksProcessed, pixBufStart, *pixCalculate, pixBufEnd, *irInsert);
-           	// fprintf(stderr, "After Dilate %f %f %f %f\n", irInsert[0], irInsert[1], irInsert[2], irInsert[3]);
+            // fprintf(stderr, "After Dilate %d %d %d %d %d %d %d\n", (int)*(*irInsert), (int)*(*irInsert + 1), (int)*(*irInsert + 2), (int)*(*irInsert + 3), (int)*(*irInsert + 4), (int)*(*irInsert + 5), (int)*(*irInsert + 6), (int)*(*irInsert + 7));
             *pixCalculate += pixPerChunk;
             if (*pixCalculate >= pixBufEnd)
             {
-                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd)/sizeof(float));
+                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd) / sizeof(float));
             }
             *(irInsert) += pixPerChunk;
             if (*irInsert >= irEnd)
             {
-                *irInsert = irStart + ((*irInsert - irEnd)/sizeof(float));
+                *irInsert = irStart + ((*irInsert - irEnd) / sizeof(float));
             }
         }
         if (*originalImgChunksProcessed > (levels * chunksPerLine) && *irChunksProcessed < (totalChunks))
@@ -575,7 +360,7 @@ bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk
             // fprintf(stderr, "After Erode %f %f %f %f\n", finalResult[0], finalResult[1], finalResult[2], finalResult[3]);
             if (*irCalculate >= irEnd)
             {
-                *irCalculate = irStart + ((*irCalculate - irEnd)/sizeof(float));
+                *irCalculate = irStart + ((*irCalculate - irEnd) / sizeof(float));
             }
             return true;
         }
@@ -588,12 +373,12 @@ bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk
             erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, originalImgChunksProcessed, pixBufStart, *pixCalculate, pixBufEnd, *irInsert);
             if (*pixCalculate >= pixBufEnd)
             {
-                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd)/sizeof(float));
+                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd) / sizeof(float));
             }
             *irInsert += pixPerChunk;
             if (*irInsert >= irEnd)
             {
-                *irInsert = irStart + ((*irInsert - irEnd)/sizeof(float));
+                *irInsert = irStart + ((*irInsert - irEnd) / sizeof(float));
             }
         }
         if (*originalImgChunksProcessed > (levels * chunksPerLine))
@@ -602,7 +387,7 @@ bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk
             *irCalculate += pixPerChunk;
             if (*irCalculate >= irEnd)
             {
-                *irCalculate = irStart + ((*irCalculate - irEnd)/sizeof(float));
+                *irCalculate = irStart + ((*irCalculate - irEnd) / sizeof(float));
             }
             return true;
         }

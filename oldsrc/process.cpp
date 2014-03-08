@@ -265,10 +265,10 @@ int main(int argc, char *argv[])
             if (!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
                 break;  // No more images
 
-            for (int i = 0; i < cbRaw / 8; i++)
-            {
-                fprintf(stderr, "%x\n", raw[i]);
-            }
+            // for (int i = 0; i < cbRaw / 8; i++)
+            // {
+            //     fprintf(stderr, "%x\n", raw[i]);
+            // }
             //s4 = stamp();
             unpack_blob(w, h, bits, &raw[0], &pixels[0]);
             // for (int line = 0; line < 512; line++)
