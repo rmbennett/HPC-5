@@ -101,6 +101,15 @@ int main(int argc, char *argv[])
     // 35  36 |37_|38_|39_|40  41
     // 42  43  44 |45_|46  47  48
 
+    fprintf(stderr, "\n             ___\n");
+    fprintf(stderr, " 0   1   2__|3__|4__ 5   6\n");
+    fprintf(stderr, " 7   8__|9__|10_|11_|12_ 13\n");
+    fprintf(stderr, " 14_|15_|16_|17_|18_|19_|20_\n");
+    fprintf(stderr, "|21_|22_|23_|24_|25_|26_|27_|\n");
+    fprintf(stderr, " 28 |29_|30_|31_|32_|33_|34\n");
+    fprintf(stderr, " 35  36 |37_|38_|39_|40  41\n");
+    fprintf(stderr, " 42  43  44 |45_|46  47  48\n\n");
+
     int squareCount = 0;
     for (int i = 0; i < levels + 1; i++)
     {
