@@ -57,7 +57,7 @@ void unpack_blob(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, cons
     for (unsigned i = 0; i < pixPerChunk; i++)
     {
         **pixBufInsertPtr = (float)(uint64_t(buffer & MASK));
-        fprintf(stderr, "%d ", uint32_t(**pixBufInsertPtr));
+        // fprintf(stderr, "%d ", uint32_t(**pixBufInsertPtr));
         // if(i != 0 && !((i+1)%8) && i != pixPerChunk - 1)
         // 	fprintf(stderr, "\nBefore: ");
         (*pixBufInsertPtr)++;

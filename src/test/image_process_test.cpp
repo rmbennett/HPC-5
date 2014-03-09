@@ -80,20 +80,42 @@ int main(int argc, char *argv[])
     float *testStreamBuffer  = (float *)malloc(pixBufSize);
 
     levels = 3;
+
+    float *diamond = (float *)malloc(sizeof(float) * (2*levels + 1));
+    for (int i = 0; i < (2*levels + 1); i++)
+    {
+        for (int j = 0; j < (2*levels + 1); j++)
+        {
+            diamond[(i*(2*levels + 1)) + j] = (i*(2*levels + 1)) + j;
+        }
+    }
+
     printf("Levels = 3 - 2\n");
+
+    //             ___
+    // 0   1   2__|3__|4__ 5   6
+    // 7   8__|9__|10_|11_|12_ 13
+    // 14_|15_|16_|17_|18_|19_|20_
+    //|21_|22_|23_|24_|25_|26_|27_|
+    // 28 |29_|30_|31_|32_|33_|34
+    // 35  36 |37_|38_|39_|40  41
+    // 42  43  44 |45_|46  47  48
+
     int squareCount = 0;
     for (int i = 0; i < levels + 1; i++)
     {
         for (int j = 0; j < levels + 1; j++)
         {
             squareCount++;
-            printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels));
+            // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels));
+            printf("i %d j %d k %d = %f\n", i, j, 0, getPixel(7, 7, 3, 3, mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels), &diamond[0], &diamond[24], &diamond[48]));
             if (i == 0)
             {
                 for (int k = 1; k < 2 * j; k += 2)
                 {
                     squareCount++;
-                    printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    printf("i %d j %d k %d = %f\n", i, j, k, getPixel(7, 7, 3, 3, mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels), &diamond[0], &diamond[24], &diamond[48]));
                 }
             }
             else if (i < j && i != 0 && j == levels)
@@ -101,7 +123,8 @@ int main(int argc, char *argv[])
                 for (int k = 1; k < 2 * (levels - i); k += 2)
                 {
                     squareCount++;
-                    printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    printf("i %d j %d k %d = %f\n", i, j, k, getPixel(7, 7, 3, 3, mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels), &diamond[0], &diamond[24], &diamond[48]));
                 }
             }
         }
@@ -312,7 +335,6 @@ int main(int argc, char *argv[])
         testStreamBuffer[i] = i+1;
     }
 
-
     //Do some tests;
 
     //GetChunkXY
@@ -333,8 +355,14 @@ int main(int argc, char *argv[])
     assert(x == 0 && y == 3);
 
     //Valid Pixel
+
+    //First Line
     chunksProcessed = 0;
     calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
+
+    assert(x == 0 && y == 0);
+
+    //Top left
     assert(!validPixel(w, h, x, y, 0, -1));
     assert(!validPixel(w, h, x, y, -1, 0));
     assert(!validPixel(w, h, x, y, -1, -1));
@@ -347,17 +375,167 @@ int main(int argc, char *argv[])
     assert(!validPixel(w, h, x + 31, y, 0, -1));
     assert(!validPixel(w, h, x + 31, y, -1, -1));
     assert(!validPixel(w, h, x + 31, y, 1, 0));
+    assert(!validPixel(w, h, x + 31, y, 1, -1));
     assert(validPixel(w, h, x + 31, y, -1, 1));
 
+    //Left Edge
+    for (int i = 0; i < h; i++)
+    {
+        assert(validPixel(w, h, x, y + i, 1, 0));
+        assert(!validPixel(w, h, x, y + i, -1, 0));
+    }
 
+    //Right Edge
+    for (int i = 0; i < h; i++)
+    {
+        assert(validPixel(w, h, x + 31, y + i, -1, 0));
+        assert(!validPixel(w, h, x + 31, y + i, 1, 0));
+    }
 
+    //Along top
+    for (int i = 0; i < w; i++)
+    {
+        assert(validPixel(w, h, x + i, y, 0, 1));
+        assert(!validPixel(w, h, x + i, y, 0, -1));
+    }
 
+    chunksProcessed = 31;
+    calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
 
+    assert(x == 0 && y == 31);
+    
+    //Bottom left
+    assert(validPixel(w, h, x, y, 0, -1));
+    assert(validPixel(w, h, x, y, 1, 0));
+    assert(!validPixel(w, h, x, y, -1, 0));
+    assert(!validPixel(w, h, x, y, -1, -1));
+    assert(validPixel(w, h, x, y, 1, -1));
+    assert(!validPixel(w, h, x, y, 0, 1));
+    assert(!validPixel(w, h, x, y, 1, 1));
 
+    //Bottom Right
+    assert(!validPixel(w, h, x + 31, y, 1, 0));
+    assert(!validPixel(w, h, x + 31, y, 0, 1));
+    assert(!validPixel(w, h, x + 31, y, 1, 1));
+    assert(validPixel(w, h, x + 31, y, -1, 0));
+    assert(validPixel(w, h, x + 31, y, 0, -1));
+    assert(validPixel(w, h, x + 31, y, -1, -1));
 
+    //Along Bottom
+    for (int i = 0; i < w; i++)
+    {
+        assert(validPixel(w, h, x + i, y, 0, -1));
+        assert(!validPixel(w, h, x + i, y, 0, 1));
+    }
 
+    //Test getting Values...
+    chunksProcessed = 0;
+    calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
+    for (int i = 0; i < w; i++)
+    {
+        assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[i], &testStreamBuffer[96]) == w+1+i);
+    }
+
+    chunksProcessed = 3;
+    calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
+    assert(x == 0 && y == 3);
+    for (int i = 0; i < w; i++)
+    {
+        assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[(2*w) + i], &testStreamBuffer[96]) == i+1);
+    }
+
+    for (int i = 0; i < (w-1); i++)
+    {
+        assert(getPixel(w, h, x, y, 1, 1, &testStreamBuffer[0], &testStreamBuffer[(2*w) + i], &testStreamBuffer[96]) == i + 2);
+    }
 
     printf("All Tests Run Successfully\n");
 
+    float *testResults = (float *)malloc(sizeof(float) * pixPerChunk * chunksPerLine);
+
+    assert(w == 32 && h == 32);
+    assert(pixPerChunk == 32);
+    assert(chunksPerLine == 1);
+
+
+    //Top Row
+    chunksProcessed = 0;
+
+    erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[0], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Erode Top\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
+
+    chunksProcessed = 0;
+
+    dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[0], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Dilate Top\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
+
+
+    //Middle Row
+    erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[32], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Erode Middle\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
+
+    chunksProcessed = 1;
+
+    dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[32], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Dilate Middle\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
+
+    //Bottom Row wrap
+
+    erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[64], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Erode Bottom\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
+
+    chunksProcessed = 2;
+
+    dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[64], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Dilate Bottom\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
+
+    //Top Row wrap
+    erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[0], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Erode Top Wrap\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
+
+    chunksProcessed = 3;
+
+    dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, &chunksProcessed, &testStreamBuffer[0], &testStreamBuffer[0], &testStreamBuffer[96], testResults);
+
+    fprintf(stderr, "Dilate Top Wrap\n");
+    for (int i = 0; i < (pixPerChunk * chunksPerLine); i++)
+    {
+        fprintf(stderr, "Value %d %lf\n", i, testResults[i]);
+    }
 
 }

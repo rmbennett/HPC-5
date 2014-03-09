@@ -125,6 +125,8 @@ int main(int argc, char *argv[])
                 }
             }
 
+            // fprintf(stderr, "chunksRead %d originalChunksProcessed %d irChunksProcessed %d\n", chunksRead, originalChunksProcessed, irChunksProcessed);
+
             if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
             {
                 chunksRead = 0;
