@@ -301,15 +301,15 @@ bool validPixel(unsigned w, unsigned h, unsigned x, unsigned y, int dx, int dy)
 float getPixel(unsigned w, unsigned h, unsigned x, unsigned y, int dx, int dy, float *memStart, float *pixPtr, float *memEnd)
 {
 
-	// fprintf(stderr, "Getting x %d y %d dx %d dy %d pixPtr %d\n", x, y, dx, dy, pixPtr);
-
+	fprintf(stderr, "Getting x %d y %d dx %d dy %d pixPtr %f\n", x, y, dx, dy, *pixPtr);
+    //fprintf(stderr, "Getting x %d y %d dx %d dy %d \n", x, y, dx, dy);
     int offset = dx + (w * dy);
 
-    // fprintf(stderr, "offset %d\n", offset);
+    //fprintf(stderr, "offset %d\n", offset);
 
     float *result = pixPtr + offset;
 
-    // fprintf(stderr, "result %d memEnd %d\n", result, memEnd);
+    //fprintf(stderr, "result %f memEnd %f\n", result, memEnd);
 
     if (result < memStart)
     {
@@ -320,7 +320,7 @@ float getPixel(unsigned w, unsigned h, unsigned x, unsigned y, int dx, int dy, f
         result = memStart + ((result - memEnd));
     }
 
-    // fprintf(stderr, "start %d res %d end %d\n", memStart, result, memEnd);
+    //fprintf(stderr, "start %f pixPtr %f end %f\n", *memStart, *pixPtr, *memEnd);
 
     return *result;
 
