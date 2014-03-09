@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
         uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
 
-        fprintf(stderr, "%d\n", pixBufSize/sizeof(float));
+        fprintf(stderr, "%ld\n", pixBufSize/sizeof(float));
 
         float *pixBufStart = (float *)malloc(pixBufSize);
         float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
