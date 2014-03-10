@@ -41,7 +41,7 @@ uint64_t shuffle64(unsigned bits, uint64_t x)
     return x;
 }
 
-/*! Take data packed into incoming format, and expand to one integer per pixel */
+/*! Take data packed into incoming format, and expand to one float per pixel */
 void unpack_blob(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, const uint64_t pRaw, float *pixBufStart, float **pixBufInsertPtr, float *pixBufEnd)
 {
     uint64_t buffer = 0;
@@ -53,7 +53,6 @@ void unpack_blob(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, cons
     bufferedBits = 64;
 
 	// fprintf(stderr, "Before: ");
-
     for (unsigned i = 0; i < pixPerChunk; i++)
     {
         **pixBufInsertPtr = (float)(uint64_t(buffer & MASK));
@@ -73,7 +72,7 @@ void unpack_blob(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, cons
     (*chunksRead)++;
     assert(bufferedBits == 0);
 }
-
+/*! Take data packed into incoming format, and expand to one double per pixel - for 32bit images. */
 void unpack_blob32(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, const uint64_t pRaw, double *pixBufStart, double **pixBufInsertPtr, double *pixBufEnd)
 {
     uint64_t buffer = 0;
@@ -106,7 +105,7 @@ void unpack_blob32(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, co
     assert(bufferedBits == 0);
 }
 
-/*! Go back from one integer per pixel to packed format for output. */
+/*! Go back from one float per pixel to packed format for output. */
 void pack_blob(unsigned bits, uint32_t pixPerChunk, const float *pUnpacked, uint64_t *pRaw)
 {
     uint64_t buffer = 0;
@@ -130,7 +129,7 @@ void pack_blob(unsigned bits, uint32_t pixPerChunk, const float *pUnpacked, uint
 
     assert(bufferedBits == 0);
 }
-
+/*! Go back from one double per pixel to packed format for output. */
 void pack_blob32(unsigned bits, uint32_t pixPerChunk, const double *pUnpacked, uint64_t *pRaw)
 {
     uint64_t buffer = 0;
@@ -154,6 +153,7 @@ void pack_blob32(unsigned bits, uint32_t pixPerChunk, const double *pUnpacked, u
 
     assert(bufferedBits == 0);
 }
+
 
 bool read_blob(int fd, uint64_t cbBlob, void *pBlob)
 {

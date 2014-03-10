@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Processing %d x %d image with %d bits per pixel.\n", w, h, bits);
 
         uint64_t bytesToRead = sizeof(uint64_t);
-        uint32_t pixPerChunk = CHUNKSIZE / bits; //pixels per chunk
+        uint32_t pixPerChunk = CHUNKSIZE / bits; //No of pixels to be processed per chunk read.
 
         uint32_t chunksPerLine = w / pixPerChunk;
         uint32_t totalChunks = (w * h) / pixPerChunk;
@@ -74,24 +74,27 @@ int main(int argc, char *argv[])
 
         uint64_t chunksRead = 0;
         uint64_t originalChunksProcessed = 0;
-        uint64_t irChunksProcessed = 0;
+        uint64_t irChunksProcessed = 0; // The No. of chunks in Intermediate Result Buffer that have been processed
 
+        //Due to the SSE instructions used for bit sizes of less than 32 - we can use floats, and for a bit size of 32 we use doubles. 
+        //Bit size 32 is slower than the lower bit sizes - but using this method enables 1-16 bits to be much faster. 
         if (bits < 32)
         {
-            uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
+            uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1)); 
 
             float *pixBufStart = (float *)malloc(pixBufSize);
             float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
             float *pixBufInsert = pixBufStart;
             float *pixBufCalculate = pixBufStart;
 
+            //Intermediate Result Buffer definitions
             float *irStart = (float *)malloc(pixBufSize);
             float *irEnd = irStart + (pixBufSize / sizeof(float));
             float *irInsert = irStart;
             float *irCalculate = irStart;
 
 
-            float *finalResult = (float *)malloc(sizeof(float) * pixPerChunk);
+            float *finalResult = (float *)malloc(sizeof(float) * pixPerChunk); //Result values to be written out.
 
             while (1)
             {
@@ -103,7 +106,8 @@ int main(int argc, char *argv[])
                         break;
                     }
                     if (chunksRead == 1)
-                        start = std::chrono::high_resolution_clock::now();
+                        // start = std::chrono::high_resolution_clock::now();
+                    //start timing once first blob is read in - used for benchmarking.    
                     unpack_blob(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
                     // if (!(chunksRead %3*chunksPerLine))
                     //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
@@ -116,7 +120,8 @@ int main(int argc, char *argv[])
                         pack_blob(bits, pixPerChunk, finalResult, &resultChunk);
                         write_blob(STDOUT_FILENO, bytesToRead, &resultChunk);
                         if (irChunksProcessed == 1)
-                            finish = std::chrono::high_resolution_clock::now();
+                            //finish = std::chrono::high_resolution_clock::now();
+                            ////finish timing once first blob is written out - used for benchmarking (this is worst case latency)
                     }
                 }
 
@@ -125,9 +130,11 @@ int main(int argc, char *argv[])
                 // fprintf(stderr, "irInsert %d irCalculate %d\n", irInsert, irCalculate);
 
 
-                if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
+                if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks)) //When all pixels have been read in and processed
                 {
-                    std::cerr << (std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count())/(pixPerChunk) << "ns\n";
+                    //Print out timing
+                    //std::cerr << (std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count())/(pixPerChunk) << "ns\n";
+                    //Reset values in preparation for next image.
                     chunksRead = 0;
                     pixBufInsert = pixBufStart;
                     pixBufCalculate = pixBufStart;
@@ -136,20 +143,25 @@ int main(int argc, char *argv[])
                     irCalculate = irStart;
                 }
             }
+
+            //Release allocated buffers. 
             free (pixBufStart);
             free (irStart);
             free (finalResult);
         }
         else
         {
+            //For bit size of 32 we use doubles rather than floats.
 
+            //Pixel Buffer definitions
             uint32_t pixBufSize = sizeof(double) * (w * ((2 * levels) + 1));
 
             double *pixBufStart = (double *)malloc(pixBufSize);
             double *pixBufEnd = pixBufStart + (pixBufSize / sizeof(double));
             double *pixBufInsert = pixBufStart;
             double *pixBufCalculate = pixBufStart;
-
+            
+            //Intermediate Result Buffer definitions
             double *irStart = (double *)malloc(pixBufSize);
             double *irEnd = irStart + (pixBufSize / sizeof(double));
             double *irInsert = irStart;
@@ -158,6 +170,7 @@ int main(int argc, char *argv[])
 
             double *finalResult = (double *)malloc(sizeof(double) * pixPerChunk);
 
+            //This section calls 32 bit versions of the pack, unpack and process functions but is otherwise identical to the section above
             while (1)
             {
 
@@ -188,6 +201,7 @@ int main(int argc, char *argv[])
 
                 if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
                 {
+                    //Reset values in preparation for next image.                    
                     chunksRead = 0;
                     pixBufInsert = pixBufStart;
                     pixBufCalculate = pixBufStart;
