@@ -175,7 +175,7 @@ USAGE*****
 
 How to build ***
 
-g++ -I include/ src/process.cpp -std=c++11 -lOpenCL
+g++ -I include/ src/process.cpp -std=c++11
 
 How to run ***
 cat input.raw | ./a.out 512 512 2 | convert -size 512x512 -depth 2 gray:- output.png
