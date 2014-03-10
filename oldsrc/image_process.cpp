@@ -28,7 +28,7 @@ uint32_t vmin(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
 
 void erode(unsigned w, unsigned h, const std::vector<uint32_t> &input, std::vector<uint32_t> &output)
 {
-	fprintf(stderr, "Erode\n");
+	// fprintf(stderr, "Erode\n");
 	auto in=[&](int x, int y) -> uint32_t { return input[y*w+x]; };
 	auto out=[&](int x, int y) -> uint32_t & {return output[y*w+x]; };
 	
@@ -78,7 +78,7 @@ uint32_t vmax(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
 void dilate(unsigned w, unsigned h, const std::vector<uint32_t> &input, std::vector<uint32_t> &output)
 {
 
-	fprintf(stderr, "Dilate\n");
+	// fprintf(stderr, "Dilate\n");
 	auto in=[&](int x, int y) -> uint32_t { return input[y*w+x]; };
 	auto out=[&](int x, int y) -> uint32_t & {return output[y*w+x]; };
 	
@@ -122,25 +122,25 @@ void process(int levels, unsigned w, unsigned h, unsigned /*bits*/, std::vector<
 	auto fwd=levels < 0 ? erode : dilate;
 	auto rev=levels < 0 ? dilate : erode;
 
-	for (int i = 0; i < w * h / 8; i++){
-		fprintf(stderr, "Before: %d %d %d %d %d %d %d %d\n", pixels[i*8], pixels[i*8 + 1], pixels[i*8 + 2], pixels[i*8 +3], pixels[i*8 + 4], pixels[i*8 + 5], pixels[i*8 + 6], pixels[i*8 + 7]);
-	}
+	// for (int i = 0; i < w * h / 8; i++){
+	// 	fprintf(stderr, "Before: %d %d %d %d %d %d %d %d\n", pixels[i*8], pixels[i*8 + 1], pixels[i*8 + 2], pixels[i*8 +3], pixels[i*8 + 4], pixels[i*8 + 5], pixels[i*8 + 6], pixels[i*8 + 7]);
+	// }
 
 	for(int i=0;i<std::abs(levels);i++)
 	{
 		fwd(w, h, pixels, buffer);
 		std::swap(pixels, buffer);
 	}
-	for (int i = 0; i < w * h / 8; i++){
-		fprintf(stderr, "After Dilate: %d %d %d %d %d %d %d %d\n", pixels[i*8], pixels[i*8 + 1], pixels[i*8 + 2], pixels[i*8 +3], pixels[i*8 + 4], pixels[i*8 + 5], pixels[i*8 + 6], pixels[i*8 + 7]);
-	}
+	// for (int i = 0; i < w * h / 8; i++){
+	// 	fprintf(stderr, "After Dilate: %d %d %d %d %d %d %d %d\n", pixels[i*8], pixels[i*8 + 1], pixels[i*8 + 2], pixels[i*8 +3], pixels[i*8 + 4], pixels[i*8 + 5], pixels[i*8 + 6], pixels[i*8 + 7]);
+	// }
 
 	for(int i=0;i<std::abs(levels);i++)
 	{
 		rev(w,h,pixels, buffer);
 		std::swap(pixels, buffer);
 	}
-	for (int i = 0; i < w * h / 8; i++){
-		fprintf(stderr, "After Erode: %d %d %d %d %d %d %d %d\n", pixels[i*8], pixels[i*8 + 1], pixels[i*8 + 2], pixels[i*8 +3], pixels[i*8 + 4], pixels[i*8 + 5], pixels[i*8 + 6], pixels[i*8 + 7]);
-	}
+	// for (int i = 0; i < w * h / 8; i++){
+	// 	fprintf(stderr, "After Erode: %d %d %d %d %d %d %d %d\n", pixels[i*8], pixels[i*8 + 1], pixels[i*8 + 2], pixels[i*8 +3], pixels[i*8 + 4], pixels[i*8 + 5], pixels[i*8 + 6], pixels[i*8 + 7]);
+	// }
 }

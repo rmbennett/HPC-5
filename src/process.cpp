@@ -10,25 +10,16 @@
 #include <time.h>
 #include <stddef.h>
 #include <sys/sysinfo.h>
+#include <chrono>
 
 #include "file_utils.hpp"
 #include "image_process.hpp"
 
 #define CHUNKSIZE 64
 
-//Timing function - from Advanced Computer Architecture - Coursework 2 - Prof. Kelly
-long stamp()
-{
-    struct timespec tv;
-    long _stamp;
-    clock_gettime(CLOCK_MONOTONIC, &tv);
-    _stamp = tv.tv_sec * 1000 * 1000 * 1000 + tv.tv_nsec;
-    return _stamp;
-}
-
 int main(int argc, char *argv[])
 {
-    long s1, s2, s3, s4, s5, s6, s7;
+    auto start = std::chrono::high_resolution_clock::now(), finish = std::chrono::high_resolution_clock::now();
     try
     {
         if (argc < 3)
@@ -111,6 +102,8 @@ int main(int argc, char *argv[])
                     {
                         break;
                     }
+                    if (chunksRead == 1)
+                        start = std::chrono::high_resolution_clock::now();
                     unpack_blob(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
                     // if (!(chunksRead %3*chunksPerLine))
                     //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
@@ -122,6 +115,8 @@ int main(int argc, char *argv[])
                     {
                         pack_blob(bits, pixPerChunk, finalResult, &resultChunk);
                         write_blob(STDOUT_FILENO, bytesToRead, &resultChunk);
+                        if (irChunksProcessed == 1)
+                            finish = std::chrono::high_resolution_clock::now();
                     }
                 }
 
@@ -132,6 +127,7 @@ int main(int argc, char *argv[])
 
                 if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
                 {
+                    std::cerr << (std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count())/(pixPerChunk) << "ns\n";
                     chunksRead = 0;
                     pixBufInsert = pixBufStart;
                     pixBufCalculate = pixBufStart;

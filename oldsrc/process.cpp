@@ -10,6 +10,7 @@
 #include <time.h>
 #include <stddef.h>
 #include <sys/sysinfo.h>
+#include <chrono>
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -210,7 +211,7 @@ long stamp()
 
 int main(int argc, char *argv[])
 {
-    long s1, s2, s3, s4, s5, s6, s7;
+    clock_t s1, s2;
     try
     {
         if (argc < 3)
@@ -258,9 +259,9 @@ int main(int argc, char *argv[])
         std::vector<uint64_t> raw(cbRaw / 8);
 
         std::vector<uint32_t> pixels(w * h);
-        s1 = stamp();
         while (1)
         {
+            auto start = std::chrono::high_resolution_clock::now();
             //s3 = stamp();
             if (!read_blob(STDIN_FILENO, cbRaw, &raw[0]))
                 break;  // No more images
@@ -286,9 +287,11 @@ int main(int argc, char *argv[])
             pack_blob(w, h, bits, &pixels[0], &raw[0]);
             //s7 = stamp();
             write_blob(STDOUT_FILENO, cbRaw, &raw[0]);
+            auto finish = std::chrono::high_resolution_clock::now();
+            std::cerr << (std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count())/(w*h) << "ns\n";
+
         }
-        s2 = stamp();
-        fprintf(stderr, "Overall time %g s\n", (s2 - s1) / 1e9);
+        // fprintf(stderr, "Overall time %lf s\n", double( s2 - s1 ) / (double)CLOCKS_PER_SEC);
         // fprintf(stderr,"Read Blob %g s\n", (s4 - s3) / 1e9);
         // fprintf(stderr,"unpack_blob %g s\n", (s5 - s4) / 1e9);
         // fprintf(stderr, "process %g s\n", (s6 - s5) / 1e9);
