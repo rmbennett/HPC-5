@@ -74,8 +74,64 @@ void unpack_blob(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, cons
     assert(bufferedBits == 0);
 }
 
+void unpack_blob32(unsigned bits, uint32_t pixPerChunk, uint64_t *chunksRead, const uint64_t pRaw, double *pixBufStart, double **pixBufInsertPtr, double *pixBufEnd)
+{
+    uint64_t buffer = 0;
+    unsigned bufferedBits = 0;
+
+    const uint64_t MASK = 0xFFFFFFFFFFFFFFFFULL >> (64 - bits);
+
+    buffer = shuffle64(bits, pRaw);
+    bufferedBits = 64;
+
+	// fprintf(stderr, "Before: ");
+
+    for (unsigned i = 0; i < pixPerChunk; i++)
+    {
+        **pixBufInsertPtr = (double)(uint64_t(buffer & MASK));
+        // fprintf(stderr, "%d ", uint32_t(**pixBufInsertPtr));
+        // if(i != 0 && !((i+1)%8) && i != pixPerChunk - 1)
+        // 	fprintf(stderr, "\nBefore: ");
+        (*pixBufInsertPtr)++;
+        if ((*pixBufInsertPtr) >= pixBufEnd)
+        {
+            *pixBufInsertPtr = pixBufStart + ((*pixBufInsertPtr - pixBufEnd) / sizeof(double));
+        }
+        buffer = buffer >> bits;
+        bufferedBits -= bits;
+    }
+    // fprintf(stderr, "\n");
+
+    (*chunksRead)++;
+    assert(bufferedBits == 0);
+}
+
 /*! Go back from one integer per pixel to packed format for output. */
 void pack_blob(unsigned bits, uint32_t pixPerChunk, const float *pUnpacked, uint64_t *pRaw)
+{
+    uint64_t buffer = 0;
+    unsigned bufferedBits = 0;
+
+    const uint64_t MASK = 0xFFFFFFFFFFFFFFFFULL >> (64 - bits);
+
+    for (unsigned i = 0; i < pixPerChunk; i++)
+    {
+
+        buffer = buffer | ((uint64_t(pUnpacked[i]) & MASK) << bufferedBits);
+        bufferedBits += bits;
+
+        if (bufferedBits == 64)
+        {
+            *pRaw = shuffle64(bits, buffer);
+            buffer = 0;
+            bufferedBits = 0;
+        }
+    }
+
+    assert(bufferedBits == 0);
+}
+
+void pack_blob32(unsigned bits, uint32_t pixPerChunk, const double *pUnpacked, uint64_t *pRaw)
 {
     uint64_t buffer = 0;
     unsigned bufferedBits = 0;

@@ -78,23 +78,6 @@ int main(int argc, char *argv[])
         uint32_t chunksPerLine = w / pixPerChunk;
         uint32_t totalChunks = (w * h) / pixPerChunk;
 
-        uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
-
-        // fprintf(stderr, "%ld\n", pixBufSize/sizeof(float));
-
-        float *pixBufStart = (float *)malloc(pixBufSize);
-        float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
-        float *pixBufInsert = pixBufStart;
-        float *pixBufCalculate = pixBufStart;
-
-        float *irStart = (float *)malloc(pixBufSize);
-        float *irEnd = irStart + (pixBufSize / sizeof(float));
-        float *irInsert = irStart;
-        float *irCalculate = irStart;
-
-
-        float *finalResult = (float *)malloc(sizeof(float) * pixPerChunk);
-
         uint64_t readChunk;
         uint64_t resultChunk;
 
@@ -102,48 +85,125 @@ int main(int argc, char *argv[])
         uint64_t originalChunksProcessed = 0;
         uint64_t irChunksProcessed = 0;
 
-        while (1)
+        if (bits < 32)
+        {
+            uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
+
+            float *pixBufStart = (float *)malloc(pixBufSize);
+            float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
+            float *pixBufInsert = pixBufStart;
+            float *pixBufCalculate = pixBufStart;
+
+            float *irStart = (float *)malloc(pixBufSize);
+            float *irEnd = irStart + (pixBufSize / sizeof(float));
+            float *irInsert = irStart;
+            float *irCalculate = irStart;
+
+
+            float *finalResult = (float *)malloc(sizeof(float) * pixPerChunk);
+
+            while (1)
+            {
+
+                if (chunksRead < (totalChunks))
+                {
+                    if (!read_blob(STDIN_FILENO, bytesToRead, &readChunk))
+                    {
+                        break;
+                    }
+                    unpack_blob(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
+                    // if (!(chunksRead %3*chunksPerLine))
+                    //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
+                }
+
+                if (chunksRead > (levels * chunksPerLine))
+                {
+                    if (processStreamChunk(w, h, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
+                    {
+                        pack_blob(bits, pixPerChunk, finalResult, &resultChunk);
+                        write_blob(STDOUT_FILENO, bytesToRead, &resultChunk);
+                    }
+                }
+
+                // fprintf(stderr, "chunksRead %d originalChunksProcessed %d irChunksProcessed %d\n", chunksRead, originalChunksProcessed, irChunksProcessed);
+                // fprintf(stderr, "pixBufInsert %d pixBufCalculate %d\n", pixBufInsert, pixBufCalculate);
+                // fprintf(stderr, "irInsert %d irCalculate %d\n", irInsert, irCalculate);
+
+
+                if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
+                {
+                    chunksRead = 0;
+                    pixBufInsert = pixBufStart;
+                    pixBufCalculate = pixBufStart;
+                    originalChunksProcessed = 0;
+                    irInsert = irStart;
+                    irCalculate = irStart;
+                }
+            }
+            free (pixBufStart);
+            free (irStart);
+            free (finalResult);
+        }
+        else
         {
 
-            if (chunksRead < (totalChunks))
+            uint32_t pixBufSize = sizeof(double) * (w * ((2 * levels) + 1));
+
+            double *pixBufStart = (double *)malloc(pixBufSize);
+            double *pixBufEnd = pixBufStart + (pixBufSize / sizeof(double));
+            double *pixBufInsert = pixBufStart;
+            double *pixBufCalculate = pixBufStart;
+
+            double *irStart = (double *)malloc(pixBufSize);
+            double *irEnd = irStart + (pixBufSize / sizeof(double));
+            double *irInsert = irStart;
+            double *irCalculate = irStart;
+
+
+            double *finalResult = (double *)malloc(sizeof(double) * pixPerChunk);
+
+            while (1)
             {
-                if (!read_blob(STDIN_FILENO, bytesToRead, &readChunk))
+
+                if (chunksRead < (totalChunks))
                 {
-                    break;
+                    if (!read_blob(STDIN_FILENO, bytesToRead, &readChunk))
+                    {
+                        break;
+                    }
+                    unpack_blob32(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
+                    // if (!(chunksRead %3*chunksPerLine))
+                    //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
                 }
-                unpack_blob(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
-                // if (!(chunksRead %3*chunksPerLine))
-                //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
-            }
 
-            if (chunksRead > (levels * chunksPerLine))
-            {
-                if (processStreamChunk(w, h, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
+                if (chunksRead > (levels * chunksPerLine))
                 {
-                    pack_blob(bits, pixPerChunk, finalResult,&resultChunk);
-                    write_blob(STDOUT_FILENO, bytesToRead,&resultChunk);
+                    if (processStreamChunk32(w, h, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
+                    {
+                        pack_blob32(bits, pixPerChunk, finalResult, &resultChunk);
+                        write_blob(STDOUT_FILENO, bytesToRead, &resultChunk);
+                    }
+                }
+
+                // fprintf(stderr, "chunksRead %d originalChunksProcessed %d irChunksProcessed %d\n", chunksRead, originalChunksProcessed, irChunksProcessed);
+                // fprintf(stderr, "pixBufInsert %d pixBufCalculate %d\n", pixBufInsert, pixBufCalculate);
+                // fprintf(stderr, "irInsert %d irCalculate %d\n", irInsert, irCalculate);
+
+
+                if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
+                {
+                    chunksRead = 0;
+                    pixBufInsert = pixBufStart;
+                    pixBufCalculate = pixBufStart;
+                    originalChunksProcessed = 0;
+                    irInsert = irStart;
+                    irCalculate = irStart;
                 }
             }
-
-            // fprintf(stderr, "chunksRead %d originalChunksProcessed %d irChunksProcessed %d\n", chunksRead, originalChunksProcessed, irChunksProcessed);
-            // fprintf(stderr, "pixBufInsert %d pixBufCalculate %d\n", pixBufInsert, pixBufCalculate);
-            // fprintf(stderr, "irInsert %d irCalculate %d\n", irInsert, irCalculate);
-
-
-            if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
-            {
-                chunksRead = 0;
-                pixBufInsert = pixBufStart;
-                pixBufCalculate = pixBufStart;
-                originalChunksProcessed = 0;
-                irInsert = irStart;
-                irCalculate = irStart;
-            }
+            free (pixBufStart);
+            free (irStart);
+            free (finalResult);
         }
-
-        free (pixBufStart);
-        free (irStart);
-        free (finalResult);
     }
 
     catch (std::exception &e)
