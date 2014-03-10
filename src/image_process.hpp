@@ -24,8 +24,8 @@ double getPixel32(unsigned w, unsigned h, unsigned x, unsigned y, int dx, int dy
 
 void calculateChunkXY(unsigned w, unsigned h, unsigned *x, unsigned *y, uint64_t chunksProcessed, uint32_t chunksPerLine, uint32_t pixPerChunk);
 
-bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint32_t totalChunks, uint64_t *originalImgChunksProcessed, float *pixBufStart, float **pixCalculate, float *pixBufEnd, uint64_t *irChunksProcessed, float *irStart, float **irInsert, float **irCalculate, float *irEnd, float *finalResult);
-bool processStreamChunk32(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint32_t totalChunks, uint64_t *originalImgChunksProcessed, double *pixBufStart, double **pixCalculate, double *pixBufEnd, uint64_t *irChunksProcessed, double *irStart, double **irInsert, double **irCalculate, double *irEnd, double *finalResult);
+bool processStreamChunk(unsigned w, unsigned h, bool closed, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint32_t totalChunks, uint64_t *originalImgChunksProcessed, float *pixBufStart, float **pixCalculate, float *pixBufEnd, uint64_t *irChunksProcessed, float *irStart, float **irInsert, float **irCalculate, float *irEnd, float *finalResult);
+bool processStreamChunk32(unsigned w, unsigned h, bool closed, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint32_t totalChunks, uint64_t *originalImgChunksProcessed, double *pixBufStart, double **pixCalculate, double *pixBufEnd, uint64_t *irChunksProcessed, double *irStart, double **irInsert, double **irCalculate, double *irEnd, double *finalResult);
 
 int mapIJKtoDX(int i, int j, int k, int levels);
 int mapIJKtoDY(int i, int j, int k, int levels);

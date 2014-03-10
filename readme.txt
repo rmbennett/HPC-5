@@ -1,5 +1,5 @@
 Running Instructions
-=================================================================================================================================================================================================================================
+===========================================================================================================================================================
 
 The coursework source code is contained in src/
 
@@ -23,7 +23,15 @@ This can then be run through the program using:
 
 The hex output can be obtained by piping to `hexdump`, which can then be diff'd against another to verify identical output (this is what program_test.sh does).
 
-The output can be converted back to a viewable png using
+
+A sample comparison command is:
+
+	`diff <(cat script/input512_d1.raw | bin/oldprocess 512 512 1 1 2>/dev/null | hexdump) <(cat script/input512_d1.raw | bin/process 512 512 1 1 2>/dev/null | hexdump)`
+
+If everything runs successfully, there will be no output.
+
+
+The output of the program can be converted back to a viewable png using
 
 	`cat <output>.raw | ./bin/process <width> <height> <depth> <levels> | convert -size <width>x<height> -depth <depth> gray:<(cat -) <output_filename>.png`
 
@@ -31,8 +39,7 @@ This can then be viewed using a tool such as 'eye of gnome' with:
 
 	`eog <output_filename>.png`
 
-
-=================================================================================================================================================================================================================================
+===========================================================================================================================================================
 HPCE Coursework 5
 Streaming Morphological Filters
 
@@ -70,7 +77,7 @@ With levels > 1, it is important to understand the operation being performed.
 Levels = 1 looks as follows:
 
 	 ___
- __ |___|___
+ ___|___|___
 |___|___|___|
     |___|
 
@@ -251,7 +258,6 @@ It can be seen here though that there is a pattern of elements which this soluti
             }
         }
     }
-
              ___
          ___|_1_|___
      ___|11_|_3_|_2_|___

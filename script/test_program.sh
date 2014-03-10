@@ -30,10 +30,24 @@ if ! diff <(cat script/input512.raw | bin/oldprocess 512 512 2 1 2>/dev/null | h
   exit -1
 fi
 
+if ! diff <(cat script/input512.raw | bin/oldprocess 512 512 2 -1 2>/dev/null | hexdump) <(cat script/input512.raw | bin/process 512 512 2 -1 2>/dev/null | hexdump) >/dev/null ; then
+  echo "######################################"
+  echo "######### 512_d2 l-1 Differs #########"
+  echo "######################################"
+  exit -1
+fi
+
 if ! diff <(cat script/input512.raw | bin/oldprocess 512 512 2 2 2>/dev/null | hexdump) <(cat script/input512.raw | bin/process 512 512 2 2 2>/dev/null | hexdump) >/dev/null ; then
   echo "#####################################"
   echo "######### 512_d2 l2 Differs #########"
   echo "#####################################"
+  exit -1
+fi
+
+if ! diff <(cat script/input512.raw | bin/oldprocess 512 512 2 -2 2>/dev/null | hexdump) <(cat script/input512.raw | bin/process 512 512 2 -2 2>/dev/null | hexdump) >/dev/null ; then
+  echo "######################################"
+  echo "######### 512_d2 l-2 Differs #########"
+  echo "######################################"
   exit -1
 fi
 

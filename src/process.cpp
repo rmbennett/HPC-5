@@ -60,8 +60,10 @@ int main(int argc, char *argv[])
         {
             levels = atoi(argv[4]); //set levels
         }
+        bool closed = levels < 0;
+        levels = abs(levels);
 
-        fprintf(stderr, "Processing %d x %d image with %d bits per pixel.\n", w, h, bits);
+        fprintf(stderr, "Processing %d x %d image with %d bits per pixel and levels %d.\n", w, h, bits, levels);
 
         uint64_t bytesToRead = sizeof(uint64_t);
         uint32_t pixPerChunk = CHUNKSIZE / bits; //No of pixels to be processed per chunk read.
@@ -76,11 +78,11 @@ int main(int argc, char *argv[])
         uint64_t originalChunksProcessed = 0;
         uint64_t irChunksProcessed = 0; // The No. of chunks in Intermediate Result Buffer that have been processed
 
-        //Due to the SSE instructions used for bit sizes of less than 32 - we can use floats, and for a bit size of 32 we use doubles. 
-        //Bit size 32 is slower than the lower bit sizes - but using this method enables 1-16 bits to be much faster. 
+        //Due to the SSE instructions used for bit sizes of less than 32 - we can use floats, and for a bit size of 32 we use doubles.
+        //Bit size 32 is slower than the lower bit sizes - but using this method enables 1-16 bits to be much faster.
         if (bits < 32)
         {
-            uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1)); 
+            uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
 
             float *pixBufStart = (float *)malloc(pixBufSize);
             float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
@@ -105,30 +107,23 @@ int main(int argc, char *argv[])
                     {
                         break;
                     }
-                    if (chunksRead == 1)
+                    // if (chunksRead == 1)
+                        // start timing once first blob is read in - used for benchmarking.
                         // start = std::chrono::high_resolution_clock::now();
-                    //start timing once first blob is read in - used for benchmarking.    
                     unpack_blob(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
-                    // if (!(chunksRead %3*chunksPerLine))
-                    //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
                 }
 
                 if (chunksRead > (levels * chunksPerLine))
                 {
-                    if (processStreamChunk(w, h, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
+                    if (processStreamChunk(w, h, closed, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
                     {
                         pack_blob(bits, pixPerChunk, finalResult, &resultChunk);
                         write_blob(STDOUT_FILENO, bytesToRead, &resultChunk);
-                        if (irChunksProcessed == 1)
-                            //finish = std::chrono::high_resolution_clock::now();
-                            ////finish timing once first blob is written out - used for benchmarking (this is worst case latency)
+                        // if (irChunksProcessed == 1)
+                        //finish timing once first blob is written out - used for benchmarking (this is worst case latency)
+                        //finish = std::chrono::high_resolution_clock::now();
                     }
                 }
-
-                // fprintf(stderr, "chunksRead %d originalChunksProcessed %d irChunksProcessed %d\n", chunksRead, originalChunksProcessed, irChunksProcessed);
-                // fprintf(stderr, "pixBufInsert %d pixBufCalculate %d\n", pixBufInsert, pixBufCalculate);
-                // fprintf(stderr, "irInsert %d irCalculate %d\n", irInsert, irCalculate);
-
 
                 if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks)) //When all pixels have been read in and processed
                 {
@@ -144,7 +139,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            //Release allocated buffers. 
+            //Release allocated buffers.
             free (pixBufStart);
             free (irStart);
             free (finalResult);
@@ -160,7 +155,7 @@ int main(int argc, char *argv[])
             double *pixBufEnd = pixBufStart + (pixBufSize / sizeof(double));
             double *pixBufInsert = pixBufStart;
             double *pixBufCalculate = pixBufStart;
-            
+
             //Intermediate Result Buffer definitions
             double *irStart = (double *)malloc(pixBufSize);
             double *irEnd = irStart + (pixBufSize / sizeof(double));
@@ -181,27 +176,20 @@ int main(int argc, char *argv[])
                         break;
                     }
                     unpack_blob32(bits, pixPerChunk, &chunksRead, readChunk, pixBufStart, &pixBufInsert, pixBufEnd);
-                    // if (!(chunksRead %3*chunksPerLine))
-                    //     fprintf(stderr, "Addresses Equal %d\n", pixBufStart == pixBufInsert);
                 }
 
                 if (chunksRead > (levels * chunksPerLine))
                 {
-                    if (processStreamChunk32(w, h, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
+                    if (processStreamChunk32(w, h, closed, levels, pixPerChunk, chunksPerLine, totalChunks, &originalChunksProcessed, pixBufStart, &pixBufCalculate, pixBufEnd, &irChunksProcessed, irStart, &irInsert, &irCalculate, irEnd, finalResult))
                     {
                         pack_blob32(bits, pixPerChunk, finalResult, &resultChunk);
                         write_blob(STDOUT_FILENO, bytesToRead, &resultChunk);
                     }
                 }
 
-                // fprintf(stderr, "chunksRead %d originalChunksProcessed %d irChunksProcessed %d\n", chunksRead, originalChunksProcessed, irChunksProcessed);
-                // fprintf(stderr, "pixBufInsert %d pixBufCalculate %d\n", pixBufInsert, pixBufCalculate);
-                // fprintf(stderr, "irInsert %d irCalculate %d\n", irInsert, irCalculate);
-
-
                 if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
                 {
-                    //Reset values in preparation for next image.                    
+                    //Reset values in preparation for next image.
                     chunksRead = 0;
                     pixBufInsert = pixBufStart;
                     pixBufCalculate = pixBufStart;
