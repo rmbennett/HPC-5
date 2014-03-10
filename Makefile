@@ -3,8 +3,8 @@ SRC = src/process.cpp src/file_utils.cpp src/image_process.cpp
 OLDSRC = oldsrc/process.cpp oldsrc/file_utils.cpp oldsrc/image_process.cpp
 TESTSRC = src/test/image_process_test.cpp src/image_process.cpp
 
-CPPFLAGS =-I include -O3 -std=c++11 -g -msse2
-LIBS = -lrt -lm -lOpenCL
+CPPFLAGS =-I include -O3 -std=c++11 -msse
+LIBS = 
 
 all: bin bin/process bin/oldprocess bin/ip_test
 

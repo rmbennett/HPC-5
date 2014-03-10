@@ -15,7 +15,7 @@
 #include "file_utils.hpp"
 #include "image_process.hpp"
 
-#define CHUNKSIZE 64
+#define CHUNKSIZE 64 //Size of each chunk read in is 64 bits.
 
 int main(int argc, char *argv[])
 {
@@ -30,13 +30,13 @@ int main(int argc, char *argv[])
             exit(1);
         }
 
-        unsigned w = atoi(argv[1]);
-        unsigned h = atoi(argv[2]);
+        unsigned w = atoi(argv[1]); //set width
+        unsigned h = atoi(argv[2]); //set height
 
         unsigned bits = 8;
         if (argc > 3)
         {
-            bits = atoi(argv[3]);
+            bits = atoi(argv[3]);  //set bits
         }
 
         if (bits > 32)
@@ -58,13 +58,13 @@ int main(int argc, char *argv[])
         int levels = 1;
         if (argc > 4)
         {
-            levels = atoi(argv[4]);
+            levels = atoi(argv[4]); //set levels
         }
 
         fprintf(stderr, "Processing %d x %d image with %d bits per pixel.\n", w, h, bits);
 
         uint64_t bytesToRead = sizeof(uint64_t);
-        uint32_t pixPerChunk = CHUNKSIZE / bits;
+        uint32_t pixPerChunk = CHUNKSIZE / bits; //pixels per chunk
 
         uint32_t chunksPerLine = w / pixPerChunk;
         uint32_t totalChunks = (w * h) / pixPerChunk;
