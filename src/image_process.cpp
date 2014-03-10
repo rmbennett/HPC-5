@@ -43,6 +43,8 @@ void erodeChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32
 
             x += 4 * i;
 
+            // fprintf(stderr, "X %d memStart %d pixPtr %d memEnd %d\n", x, pixBufStart, pixCalculate, pixBufEnd);
+
             float *pix0 = &pixCalculate[0];
             float *pix1 = &pixCalculate[1];
             float *pix2 = &pixCalculate[2];
@@ -402,7 +404,6 @@ void calculateChunkXY(unsigned w, unsigned h, unsigned *x, unsigned *y, uint64_t
 
 bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk, uint32_t chunksPerLine, uint32_t totalChunks, uint64_t *originalImgChunksProcessed, float *pixBufStart, float **pixCalculate, float *pixBufEnd, uint64_t *irChunksProcessed, float *irStart, float **irInsert, float **irCalculate, float *irEnd, float *finalResult)
 {
-
     // fprintf(stderr, "original %d irChunks %d totalChunks %d\n", *originalImgChunksProcessed, *irChunksProcessed, totalChunks);
     if (levels > 0)
     {
@@ -410,19 +411,19 @@ bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk
         {
             dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, originalImgChunksProcessed, pixBufStart, *pixCalculate, pixBufEnd, *irInsert);
             // fprintf(stderr, "After Dilate %d %d %d %d %d %d %d\n", (int)*(*irInsert), (int)*(*irInsert + 1), (int)*(*irInsert + 2), (int)*(*irInsert + 3), (int)*(*irInsert + 4), (int)*(*irInsert + 5), (int)*(*irInsert + 6), (int)*(*irInsert + 7));
-            *pixCalculate += pixPerChunk;
+            (*pixCalculate) += pixPerChunk;
             if (*pixCalculate >= pixBufEnd)
             {
 				// fprintf(stderr, "Wrapping pixCalculate from %d memEnd %d\n", *pixCalculate, pixBufEnd);
-                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd) / sizeof(float));
+                *pixCalculate = pixBufStart + (((*pixCalculate) - pixBufEnd) / sizeof(float));
                 // fprintf(stderr, "To %d memStart %d\n", *pixCalculate, pixBufStart);
 
             }
-            *(irInsert) += pixPerChunk;
+            (*irInsert) += pixPerChunk;
             if (*irInsert >= irEnd)
             {
 				// fprintf(stderr, "Wrapping irInsert from %d memEnd %d\n", *irInsert, irEnd);
-                *irInsert = irStart + ((*irInsert - irEnd) / sizeof(float));
+                (*irInsert) = irStart + (((*irInsert) - irEnd) / sizeof(float));
                 // fprintf(stderr, "To %d irStart %d\n", *irInsert, irStart);
             }
         }
@@ -430,12 +431,14 @@ bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk
         {
             erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, irChunksProcessed, irStart, *irCalculate, irEnd, finalResult);
             // fprintf(stderr, "After Erode %f %f %f %f\n", finalResult[0], finalResult[1], finalResult[2], finalResult[3]);
+			(*irCalculate) += pixPerChunk;
             if (*irCalculate >= irEnd)
             {
             	// fprintf(stderr, "Wrapping irCalculate from %d memEnd %d\n", *irCalculate, irEnd);
-                *irCalculate = irStart + ((*irCalculate - irEnd) / sizeof(float));
+                (*irCalculate) = irStart + (((*irCalculate) - irEnd) / sizeof(float));
                 // fprintf(stderr, "To %d memStart %d\n", *irCalculate, irStart);
             }
+			// fprintf(stderr, "Writing out chunk %d\n", *irChunksProcessed);
             return true;
         }
         return false;
@@ -445,23 +448,24 @@ bool processStreamChunk(unsigned w, unsigned h, int levels, uint32_t pixPerChunk
         if (*originalImgChunksProcessed < (totalChunks))
         {
             erodeChunk(w, h, levels, pixPerChunk, chunksPerLine, originalImgChunksProcessed, pixBufStart, *pixCalculate, pixBufEnd, *irInsert);
+            (*pixCalculate) += pixPerChunk;
             if (*pixCalculate >= pixBufEnd)
             {
-                *pixCalculate = pixBufStart + ((*pixCalculate - pixBufEnd) / sizeof(float));
+                (*pixCalculate) = pixBufStart + (((*pixCalculate) - pixBufEnd) / sizeof(float));
             }
-            *irInsert += pixPerChunk;
+            (*irInsert) += pixPerChunk;
             if (*irInsert >= irEnd)
             {
-                *irInsert = irStart + ((*irInsert - irEnd) / sizeof(float));
+                (*irInsert) = irStart + ((*irInsert - irEnd) / sizeof(float));
             }
         }
         if (*originalImgChunksProcessed > (levels * chunksPerLine))
         {
             dilateChunk(w, h, levels, pixPerChunk, chunksPerLine, irChunksProcessed, irStart, *irCalculate, irEnd, finalResult);
-            *irCalculate += pixPerChunk;
+            (*irCalculate) += pixPerChunk;
             if (*irCalculate >= irEnd)
             {
-                *irCalculate = irStart + ((*irCalculate - irEnd) / sizeof(float));
+                (*irCalculate) = irStart + (((*irCalculate) - irEnd) / sizeof(float));
             }
             return true;
         }

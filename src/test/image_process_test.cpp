@@ -12,6 +12,17 @@
 #include <sys/sysinfo.h>
 #include <cstring>
 
+#define FLOATMIN std::numeric_limits<float>::min()
+#define FLOATMAX std::numeric_limits<float>::max()
+
+#define MAXPIX(w,h,x,y,dx,dy,memStart,pPtr,memEnd) validPixel(w,h,x,y,dx,dy)?getPixel(w,h,x,y,dx,dy,memStart,pPtr,memEnd):FLOATMAX
+
+#define MINPIX(w,h,x,y,dx,dy,memStart,pPtr,memEnd) validPixel(w,h,x,y,dx,dy)?getPixel(w,h,x,y,dx,dy,memStart,pPtr,memEnd):FLOATMIN
+
+#define MAXPIXIJK(w,h,x,y,i,j,k,levels,memStart,pPtr,memEnd) validPixel(w,h,x,y,mapIJKtoDX(i,j,k,levels),mapIJKtoDY(i,j,k,levels))?getPixel(w,h,x,y,mapIJKtoDX(i,j,k,levels),mapIJKtoDY(i,j,k,levels),memStart,pPtr,memEnd):FLOATMAX
+
+#define MINPIXIJK(w,h,x,y,i,j,k,levels,memStart,pPtr,memEnd) validPixel(w,h,x,y,mapIJKtoDX(i,j,k,levels),mapIJKtoDY(i,j,k,levels))?getPixel(w,h,x,y,mapIJKtoDX(i,j,k,levels),mapIJKtoDY(i,j,k,levels),memStart,pPtr,memEnd):FLOATMIN
+
 #include <assert.h>
 
 #include "../image_process.hpp"
@@ -81,12 +92,12 @@ int main(int argc, char *argv[])
 
     levels = 3;
 
-    float *diamond = (float *)malloc(sizeof(float) * (2*levels + 1));
-    for (int i = 0; i < (2*levels + 1); i++)
+    float *diamond = (float *)malloc(sizeof(float) * (2 * levels + 1));
+    for (int i = 0; i < (2 * levels + 1); i++)
     {
-        for (int j = 0; j < (2*levels + 1); j++)
+        for (int j = 0; j < (2 * levels + 1); j++)
         {
-            diamond[(i*(2*levels + 1)) + j] = (i*(2*levels + 1)) + j;
+            diamond[(i * (2 * levels + 1)) + j] = (i * (2 * levels + 1)) + j;
         }
     }
 
@@ -117,14 +128,15 @@ int main(int argc, char *argv[])
         {
             squareCount++;
             // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels));
-            printf("i %d j %d k %d = %f\n", i, j, 0, getPixel(7, 7, 3, 3, mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels), &diamond[0], &diamond[24], &diamond[48]));
+            printf("i %d j %d k %d = %f\n", i, j, 0, MAXPIXIJK(7, 7, 3, 2, i, j, 0, levels, &diamond[0], &diamond[24], &diamond[48]));
             if (i == 0)
             {
                 for (int k = 1; k < 2 * j; k += 2)
                 {
                     squareCount++;
                     // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
-                    printf("i %d j %d k %d = %f\n", i, j, k, getPixel(7, 7, 3, 3, mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels), &diamond[0], &diamond[24], &diamond[48]));
+                    printf("i %d j %d k %d = %f\n", i, j, k, MAXPIXIJK(7, 7, 3, 2, i, j, k, levels, &diamond[0], &diamond[24], &diamond[48]));
+                    // getPixel(7, 7, 3, 2, mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels), &diamond[0], &diamond[24], &diamond[48]
                 }
             }
             else if (i < j && i != 0 && j == levels)
@@ -133,7 +145,71 @@ int main(int argc, char *argv[])
                 {
                     squareCount++;
                     // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
-                    printf("i %d j %d k %d = %f\n", i, j, k, getPixel(7, 7, 3, 3, mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels), &diamond[0], &diamond[24], &diamond[48]));
+                    printf("i %d j %d k %d = %f\n", i, j, k, MAXPIXIJK(7, 7, 3, 2, i, j, k, levels, &diamond[0], &diamond[24], &diamond[48]));
+                }
+            }
+        }
+    }
+
+    fprintf(stderr, "Test if top is cropped... Should be no 3\n\n");
+
+    squareCount = 0;
+    for (int i = 0; i < levels + 1; i++)
+    {
+        for (int j = 0; j < levels + 1; j++)
+        {
+            squareCount++;
+            // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels));
+            printf("i %d j %d k %d = %f\n", i, j, 0, MAXPIXIJK(7, 7, 3, 2, i, j, 0, levels, &diamond[0], &diamond[24], &diamond[48]));
+            if (i == 0)
+            {
+                for (int k = 1; k < 2 * j; k += 2)
+                {
+                    squareCount++;
+                    // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    printf("i %d j %d k %d = %f\n", i, j, k, MAXPIXIJK(7, 7, 3, 2, i, j, k, levels, &diamond[0], &diamond[24], &diamond[48]));
+                    // getPixel(7, 7, 3, 2, mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels), &diamond[0], &diamond[24], &diamond[48]
+                }
+            }
+            else if (i < j && i != 0 && j == levels)
+            {
+                for (int k = 1; k < 2 * (levels - i); k += 2)
+                {
+                    squareCount++;
+                    // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    printf("i %d j %d k %d = %f\n", i, j, k, MAXPIXIJK(7, 7, 3, 2, i, j, k, levels, &diamond[0], &diamond[24], &diamond[48]));
+                }
+            }
+        }
+    }
+
+    fprintf(stderr, "Test missing top half completely\n");
+
+    squareCount = 0;
+    for (int i = 0; i < levels + 1; i++)
+    {
+        for (int j = 0; j < levels + 1; j++)
+        {
+            squareCount++;
+            // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, 0, levels), mapIJKtoDY(i, j, 0, levels));
+            printf("i %d j %d k %d = %f\n", i, j, 0, MAXPIXIJK(7, 7, 3, 0, i, j, 0, levels, &diamond[0], &diamond[24], &diamond[48]));
+            if (i == 0)
+            {
+                for (int k = 1; k < 2 * j; k += 2)
+                {
+                    squareCount++;
+                    // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    printf("i %d j %d k %d = %f\n", i, j, k, MAXPIXIJK(7, 7, 3, 0, i, j, k, levels, &diamond[0], &diamond[24], &diamond[48]));
+                    // getPixel(7, 7, 3, 2, mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels), &diamond[0], &diamond[24], &diamond[48]
+                }
+            }
+            else if (i < j && i != 0 && j == levels)
+            {
+                for (int k = 1; k < 2 * (levels - i); k += 2)
+                {
+                    squareCount++;
+                    // printf("dx: %d dy: %d\n", mapIJKtoDX(i, j, k, levels), mapIJKtoDY(i, j, k, levels));
+                    printf("i %d j %d k %d = %f\n", i, j, k, MAXPIXIJK(7, 7, 3, 0, i, j, k, levels, &diamond[0], &diamond[24], &diamond[48]));
                 }
             }
         }
@@ -187,7 +263,7 @@ int main(int argc, char *argv[])
     testStreamBuffer[0] = 5;
     testStreamBuffer[1027] = 1;
 
-    assert(getPixel(w,h,0,0,1,0,&testStreamBuffer[0], &testStreamBuffer[1027], &testStreamBuffer[1028]) == 5);
+    assert(getPixel(w, h, 0, 0, 1, 0, &testStreamBuffer[0], &testStreamBuffer[1027], &testStreamBuffer[1028]) == 5);
 
 
     // ERODE TEST TOP LEFT CORNER
@@ -278,10 +354,10 @@ int main(int argc, char *argv[])
     testStreamBuffer[w + 2] = 9;
     testStreamBuffer[w + 3] = 10;
     testStreamBuffer[w + 4] = 9;
-    testStreamBuffer[2*w] = 5;
-    testStreamBuffer[2*w + 1] = 6;
-    testStreamBuffer[2*w + 2] = 7;
-    testStreamBuffer[2*w + 3] = 8;
+    testStreamBuffer[2 * w] = 5;
+    testStreamBuffer[2 * w + 1] = 6;
+    testStreamBuffer[2 * w + 2] = 7;
+    testStreamBuffer[2 * w + 3] = 8;
 
     chunksProcessed = 128;
 
@@ -293,15 +369,15 @@ int main(int argc, char *argv[])
 
     //Above
     assert(getPixel(w, h, x, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1028]) == 7);
-    assert(getPixel(w, h, x+1, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[513], &testStreamBuffer[1028]) == 3);
-    assert(getPixel(w, h, x+2, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[514], &testStreamBuffer[1028]) == 7);
-    assert(getPixel(w, h, x+3, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[515], &testStreamBuffer[1028]) == 3);
+    assert(getPixel(w, h, x + 1, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[513], &testStreamBuffer[1028]) == 3);
+    assert(getPixel(w, h, x + 2, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[514], &testStreamBuffer[1028]) == 7);
+    assert(getPixel(w, h, x + 3, y, 0, -1, &testStreamBuffer[0], &testStreamBuffer[515], &testStreamBuffer[1028]) == 3);
 
     //Below
     assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[512], &testStreamBuffer[1028]) == 5);
-    assert(getPixel(w, h, x+1, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[513], &testStreamBuffer[1028]) == 6);
-    assert(getPixel(w, h, x+2, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[514], &testStreamBuffer[1028]) == 7);
-    assert(getPixel(w, h, x+3, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[515], &testStreamBuffer[1028]) == 8);
+    assert(getPixel(w, h, x + 1, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[513], &testStreamBuffer[1028]) == 6);
+    assert(getPixel(w, h, x + 2, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[514], &testStreamBuffer[1028]) == 7);
+    assert(getPixel(w, h, x + 3, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[515], &testStreamBuffer[1028]) == 8);
 
     assert(testStreamBuffer[512] == 2);
 
@@ -339,9 +415,9 @@ int main(int argc, char *argv[])
 
     testStreamBuffer = (float *)malloc(pixBufSize);
 
-    for (int i = 0; i < pixBufSize/sizeof(float); i++)
+    for (int i = 0; i < pixBufSize / sizeof(float); i++)
     {
-        testStreamBuffer[i] = i+1;
+        testStreamBuffer[i] = i + 1;
     }
 
     //Do some tests;
@@ -412,7 +488,7 @@ int main(int argc, char *argv[])
     calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
 
     assert(x == 0 && y == 31);
-    
+
     //Bottom left
     assert(validPixel(w, h, x, y, 0, -1));
     assert(validPixel(w, h, x, y, 1, 0));
@@ -442,7 +518,7 @@ int main(int argc, char *argv[])
     calculateChunkXY(w, h, &x, &y, chunksProcessed, chunksPerLine, pixPerChunk);
     for (int i = 0; i < w; i++)
     {
-        assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[i], &testStreamBuffer[96]) == w+1+i);
+        assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[i], &testStreamBuffer[96]) == w + 1 + i);
     }
 
     chunksProcessed = 3;
@@ -450,12 +526,12 @@ int main(int argc, char *argv[])
     assert(x == 0 && y == 3);
     for (int i = 0; i < w; i++)
     {
-        assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[(2*w) + i], &testStreamBuffer[96]) == i+1);
+        assert(getPixel(w, h, x, y, 0, 1, &testStreamBuffer[0], &testStreamBuffer[(2 * w) + i], &testStreamBuffer[96]) == i + 1);
     }
 
-    for (int i = 0; i < (w-1); i++)
+    for (int i = 0; i < (w - 1); i++)
     {
-        assert(getPixel(w, h, x, y, 1, 1, &testStreamBuffer[0], &testStreamBuffer[(2*w) + i], &testStreamBuffer[96]) == i + 2);
+        assert(getPixel(w, h, x, y, 1, 1, &testStreamBuffer[0], &testStreamBuffer[(2 * w) + i], &testStreamBuffer[96]) == i + 2);
     }
 
     printf("All Tests Run Successfully\n");

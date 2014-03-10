@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
         uint32_t pixBufSize = sizeof(float) * (w * ((2 * levels) + 1));
 
-        fprintf(stderr, "%ld\n", pixBufSize/sizeof(float));
+        // fprintf(stderr, "%ld\n", pixBufSize/sizeof(float));
 
         float *pixBufStart = (float *)malloc(pixBufSize);
         float *pixBufEnd = pixBufStart + (pixBufSize / sizeof(float));
@@ -126,6 +126,9 @@ int main(int argc, char *argv[])
             }
 
             // fprintf(stderr, "chunksRead %d originalChunksProcessed %d irChunksProcessed %d\n", chunksRead, originalChunksProcessed, irChunksProcessed);
+            // fprintf(stderr, "pixBufInsert %d pixBufCalculate %d\n", pixBufInsert, pixBufCalculate);
+            // fprintf(stderr, "irInsert %d irCalculate %d\n", irInsert, irCalculate);
+
 
             if (chunksRead == (totalChunks) && originalChunksProcessed == (totalChunks) && irChunksProcessed == (totalChunks))
             {
