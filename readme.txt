@@ -1,3 +1,7 @@
+HPC - Coursework 5
+===========================================================================================================================================================
+Richard Bennett rmb209 Richard Evans rce10
+
 Running Instructions
 ===========================================================================================================================================================
 
@@ -46,12 +50,13 @@ Streaming Morphological Filters
 Introduction:
 The purpose of this coursework was to gain an appreciation that there are two different types of "fast" which can be considered when thinking of high performance computing.
 
-1. High Throughput: Work perfect for a GPU.  You have lots of computation that needs doing and you want the final result done as quickly as possible.  This is lots of calculation done as quickly as possible; you don't care about the time to process each individual computation.
+1. High Throughput: This requirement is perfect for a GPU.  You have lots of computation that needs doing and you want the final result done as quickly as possible.  This is lots of calculation done as quickly as possible; you don't care about the time to process each individual computation.
 
-2. Low latency:  In this work, you know you have a lot of work to be done, but you want each individual computation to be done as quickly as possible so you can have the result with minimal latency.  This is the nature of problem this coursework dealt with, i.e the performance metric is how quickly we produce the result for each pixel of the incoming image after we read the original pixel value in.
+2. Low latency:  In this work, you know you have a lot of work to be done, but you want each individual computation to be done as quickly as possible to reduce the latency.  This is the nature of problem this coursework dealt with, i.e the performance metric is how quickly we produce the processed result for each incoming pixel.
 
 The Original Code:
-The original program we were provided the code performed open and close operations on an input image; either a number of erodes followed by dilates, or dilates followed by erodes depending upon the levels argument passed to the program.
+
+In the original program the code performed open and close operations on an input image; either a number of erodes followed by dilates, or dilates followed by erodes depending upon the levels argument passed to the program.
 
 The input is a grayscale raw image with a number of bits per pixel represented as packed binary, in little-endian scanline order. For images with less than 8 bits per pixel, the left-most pixel is in the MSB.
 
@@ -76,12 +81,12 @@ With levels > 1, it is important to understand the operation being performed.
 
 Levels = 1 looks as follows:
 
-	 ___
+     ___
  ___|___|___
 |___|___|___|
     |___|
 
-If you have levels > 1, each surrounding 1 pixel, needs to be the result of the surrounding erodes/dilates to have the correct value for the subsequent opposite operation.  In real terms, this means the number of pixels which affect the final value for that operation grows outwards, as each pixel affecting the final, is affected by those surrounding.  Is it possible to unroll this dependency so it can be performed in a single step, resulting in the diamond pattern as shown for levels = 2 below, where x is the final resultant pixel being calculated.
+If you have levels > 1, each surrounding 1 pixel needs to be the result of the surrounding erodes/dilates to have the correct value for the subsequent opposite operation.  In real terms, this means the number of pixels which affect the final value for that operation grows outwards, as each pixel affecting the final value is affected by those surrounding it.  It is possible to unroll this dependency so it can be performed in a single step, resulting in the diamond pattern as shown for levels = 2 below, where x is the final resultant pixel being calculated.
 
          ___
      ___|___|___ 
@@ -90,7 +95,7 @@ If you have levels > 1, each surrounding 1 pixel, needs to be the result of the 
     |___|___|___|
         |___|
 
-From this it can be seen that the total number of pixel lines needed to perform a erode/dilate operation on any given pixel is (2*levels + 1) in any direction of the pixel.  A further complication is that having calculated using any given chunk, it will later be needed to compute the operation on any pixels within (2*layers) lines below.  As a result, once a chunk has been processed, it must be maintained until all those pixels depending upon it have further been calculated.  This lends itself ideally to a cyclic buffer.  We can subsequently calculate our required buffer sizes as a function of levels, width and height of image as will be shown below.
+From this it can be seen that the total number of pixel lines needed to perform a erode/dilate operation on any given pixel is (2*levels + 1) in any direction of the pixel.  A further complication is that having calculated using any given chunk, it will later be needed to compute the operation on any pixels within (2*layers) lines below.  As a result, once a chunk has been processed, it must be maintained until all those pixels depending upon it have been calculated.  This lends itself ideally to a cyclic buffer.  We can subsequently calculate our required buffer sizes as a function of levels, width and height of image as will be shown below.
 
 An example,
 
@@ -112,9 +117,9 @@ Cyclic buffers are maintained using 4 pointers as shown below for a 32x32 image 
   ^                                     ^                        ^                                                     ^
   Buffer Start                         Process                  Insert                                                Buffer End
 
-As a new chunk is read into the buffer, the pointer is incremented by the number of pixels per chunk and the chunk counter incremented.  Once the insert pointer goes out of bounds of the buffer by advancing to or beyond the Buffer End pointer, it is wrapped back around to the beginning, allowing the original data to be written over, effectively creating a FIFO (first in first out) data structure.
+As a new chunk is read into the buffer, the pointer is incremented by the number of pixels per chunk and the chunk counter is incremented.  Once the insert pointer goes out of bounds of the buffer by advancing to or beyond the Buffer End pointer, it is wrapped back around to the beginning, allowing the original data to be written over, effectively creating a FIFO data structure.
 
-Trying to access the element directly above a pixel at address A can be calculated simply by the dx and dy to the required pixel with Result = *(A + dx + w*dy).  With the cyclic buffer, it is trivial to check that if a pixel is valid, i.e can be safely fetched, NOT x < 0 || x >= w for example, if the result address is outside the cyclic buffer, it is simple to wrap it around the beginning of end to find the correct value with pointer arithmetic.  e.g result > buffer end, result = buffer start + (result - buffer end)
+Trying to access the element directly above a pixel at address A can be calculated simply by the dx and dy to the required pixel with Result = *(A + dx + w*dy).  With the cyclic buffer, it is trivial to check if a pixel is valid, i.e can be safely fetched, NOT x < 0 || x >= w. For example, if the result address is outside the cyclic buffer, it is simple to wrap it around the beginning of end to find the correct value with pointer arithmetic.  e.g result > buffer end, result = buffer start + (result - buffer end)
 
 Expanding the example above with a 32x32 image, 2 bits per pixel and levels = 1,
 
